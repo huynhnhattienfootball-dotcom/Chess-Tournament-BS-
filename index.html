@@ -3,57 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Đa Giải Đấu Cờ Vua</title>
+    <title>Quản Lý Giải Đấu Cờ Vua</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f3f5;
+            background-color: #f4f7f6;
             color: #333;
             margin: 0;
             padding: 20px;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1000px;
             margin: 0 auto;
             background: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        h1, h2, h3 {
-            text-align: center;
-            color: #2c3e50;
-            margin-top: 5px;
-        }
-        .status-badge {
-            background-color: #27ae60;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            float: right;
-            font-weight: bold;
-        }
-        /* Phân vùng quản lý đa giải đấu */
-        .tournament-manager {
-            background: #eef2f7;
             padding: 20px;
             border-radius: 8px;
-            border-left: 5px solid #2980b9;
-            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .tournament-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-top: 10px;
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
         }
-        .tournament-controls div {
-            flex: 1;
-            min-width: 200px;
-        }
-        /* Bố cục Panel tính năng */
         .flex-container {
             display: flex;
             gap: 20px;
@@ -62,50 +32,44 @@
         }
         .panel {
             flex: 1;
-            min-width: 320px;
-            background: #fafbfc;
-            padding: 18px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
+            min-width: 300px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
         }
         input, select, button {
             width: 100%;
             padding: 10px;
             margin: 8px 0;
             box-sizing: border-box;
-            border: 1px solid #cbd5e1;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #3498db;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
         button {
-            background-color: #3498db;
+            background-color: #27ae60;
             color: white;
             border: none;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.3s;
         }
         button:hover {
-            background-color: #2980b9;
+            background-color: #219653;
         }
-        button.btn-success { background-color: #27ae60; }
-        button.btn-success:hover { background-color: #219653; }
-        button.btn-danger { background-color: #e74c3c; }
-        button.btn-danger:hover { background-color: #c0392b; }
-        
-        /* Bảng xếp hạng */
+        button.btn-danger {
+            background-color: #e74c3c;
+        }
+        button.btn-danger:hover {
+            background-color: #c0392b;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
         th, td {
-            border: 1px solid #e2e8f0;
+            border: 1px solid #ddd;
             padding: 12px;
             text-align: center;
         }
@@ -113,24 +77,31 @@
             background-color: #34495e;
             color: white;
         }
-        tr:nth-child(even) { background-color: #f8fafc; }
-        tr:hover { background-color: #f1f5f9; }
-        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e8f4f8;
+        }
         .match-list {
-            max-height: 180px;
+            max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #ddd;
             padding: 10px;
             background: #fff;
-            border-radius: 4px;
         }
         .match-item {
-            padding: 6px;
-            border-bottom: 1px solid #f1f5f9;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
             font-size: 0.9em;
         }
-        .hidden-section {
-            display: none !important;
+        .status-badge {
+            background-color: #2980b9;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            float: right;
         }
     </style>
 </head>
@@ -138,204 +109,116 @@
 
 <div class="container">
     <span class="status-badge" id="storageStatus">Đã lưu tự động</span>
-    <h1>🏆 Hệ Thống Quản Lý Giải Đấu Cờ Vua</h1>
+    <h1>🏆 Quản Lý Giải Đấu Cờ Vua</h1>
     
-    <div class="tournament-manager">
-        <h3>Quản Lý Danh Sách Giải Đấu</h3>
-        <div class="tournament-controls">
-            <div>
-                <label style="font-weight: bold;">Tạo giải đấu mới:</label>
-                <input type="text" id="newTournamentName" placeholder="Ví dụ: Giải CLB Tháng 6, Giải Vô Địch..." />
-                <button class="btn-success" onclick="createNewTournament()">Khởi Tạo Giải Đấu</button>
-            </div>
-            <div>
-                <label style="font-weight: bold;">Chọn giải đấu đang chạy / Lịch sử:</label>
-                <select id="tournamentSelector" onchange="switchTournament()"></select>
-                <button class="btn-danger" onclick="deleteCurrentTournament()">Xóa Giải Đấu Đang Chọn</button>
-            </div>
+    <div class="flex-container">
+        <div class="panel">
+            <h2>Đăng Ký Kỳ Thủ</h2>
+            <input type="text" id="playerName" placeholder="Nhập tên kỳ thủ...">
+            <button onclick="addPlayer()">Thêm Kỳ Thủ</button>
+            <button class="btn-danger" onclick="resetTournament()">Reset Giải Đấu</button>
+            
+            <h3>Danh sách đã thêm:</h3>
+            <div id="registeredPlayers" style="font-style: italic; color: #555;">Chưa có kỳ thủ nào.</div>
+        </div>
+
+        <div class="panel">
+            <h2>Nhập Kết Quả Trận Đấu</h2>
+            <label for="player1">Kỳ thủ 1 (Trắng):</label>
+            <select id="player1"></select>
+            
+            <label for="player2">Kỳ thủ 2 (Đen):</label>
+            <select id="player2"></select>
+            
+            <label for="matchResult">Kết quả:</label>
+            <select id="matchResult">
+                <option value="1-0">1 - 0 (Trắng thắng)</option>
+                <option value="0-1">0 - 1 (Đen thắng)</option>
+                <option value="0.5-0.5">0.5 - 0.5 (Hòa)</option>
+            </select>
+            
+            <button onclick="addMatch()">Cập Nhật Trận Đấu</button>
         </div>
     </div>
 
-    <div id="mainTournamentArea">
-        <h2 id="currentTournamentTitle" style="color: #2980b9; border-bottom: 2px dashed #3498db; padding-bottom: 10px;">Vui lòng tạo giải đấu</h2>
-        
-        <div class="flex-container">
-            <div class="panel">
-                <h3>Đăng Ký Kỳ Thủ</h3>
-                <input type="text" id="playerName" placeholder="Nhập tên kỳ thủ...">
-                <button onclick="addPlayer()">Thêm Kỳ Thủ</button>
-                
-                <h4 style="margin-bottom:5px;">Danh sách đã thêm:</h4>
-                <div id="registeredPlayers" style="font-style: italic; color: #64748b; font-size: 0.95em;">Chưa có kỳ thủ nào.</div>
-            </div>
-
-            <div class="panel">
-                <h3>Nhập Kết Quả Trận Đấu</h3>
-                <label for="player1">Kỳ thủ 1 (Trắng):</label>
-                <select id="player1"></select>
-                
-                <label for="player2">Kỳ thủ 2 (Đen):</label>
-                <select id="player2"></select>
-                
-                <label for="matchResult">Kết quả:</label>
-                <select id="matchResult">
-                    <option value="1-0">1 - 0 (Trắng thắng)</option>
-                    <option value="0-1">0 - 1 (Đen thắng)</option>
-                    <option value="0.5-0.5">0.5 - 0.5 (Hòa)</option>
-                </select>
-                
-                <button class="btn-success" onclick="addMatch()">Cập Nhật Trận Đấu</button>
-            </div>
-        </div>
-
-        <div class="panel" style="margin-bottom: 20px;">
-            <h3>Lịch Sử Trận Đấu Trong Giải</h3>
-            <div class="match-list" id="matchHistory">Chưa có trận đấu nào diễn ra.</div>
-        </div>
-
-        <h3>Bảng Xếp Hạng Hiện Tại</h3>
-        <table id="rankTable">
-            <thead>
-                <tr>
-                    <th>Hạng</th>
-                    <th>Tên Kỳ Thủ</th>
-                    <th>Điểm số</th>
-                    <th>Buchholz</th>
-                    <th>Số Ván Thắng</th>
-                    <th>Sonneborn</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="6" style="text-align:center">Chưa có dữ liệu.</td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="panel" style="margin-bottom: 20px;">
+        <h2>Lịch Sử Trận Đấu</h2>
+        <div class="match-list" id="matchHistory">Chưa có trận đấu nào diễn ra.</div>
     </div>
+
+    <h2>Bảng Xếp Hạng Hiện Tại</h2>
+    <table id="rankTable">
+        <thead>
+            <tr>
+                <th>Hạng</th>
+                <th>Tên Kỳ Thủ</th>
+                <th>Điểm số</th>
+                <th>Buchholz</th>
+                <th>Số Ván Thắng</th>
+                <th>Sonneborn</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="6" style="text-align:center">Chưa có dữ liệu xếp hạng.</td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 <script>
-    // Cấu trúc dữ liệu: Mảng lưu trữ danh sách tất cả các giải đấu
-    let tournaments = [];
-    let currentTournamentId = null;
+    // Khởi tạo cấu trúc dữ liệu giải đấu
+    let players = [];
+    let matches = [];
 
-    // --- 1. NHÓM HÀM QUẢN LÝ HỆ THỐNG ĐA GIẢI ĐẤU ---
+    // Hàm thực hiện việc LƯU dữ liệu vào localStorage
+    function saveToLocalStorage() {
+        localStorage.setItem('chess_tournament_players', JSON.stringify(players));
+        localStorage.setItem('chess_tournament_matches', JSON.stringify(matches));
+        showStorageStatus();
+    }
 
-    // Tạo một giải đấu mới độc lập
-    function createNewTournament() {
-        const nameInput = document.getElementById('newTournamentName');
-        const name = nameInput.value.trim();
+    // Hàm thực hiện việc TẢI dữ liệu cũ từ localStorage khi mở trang
+    function loadFromLocalStorage() {
+        const localPlayers = localStorage.getItem('chess_tournament_players');
+        const localMatches = localStorage.getItem('chess_tournament_matches');
 
-        if (name === "") {
-            alert("Vui lòng nhập tên giải đấu muốn tạo!");
-            return;
+        if (localPlayers) {
+            players = JSON.parse(localPlayers);
         }
-
-        const newId = Date.now().toString(); // Tạo ID duy nhất bằng timestamp
-        const newTournament = {
-            id: newId,
-            name: name,
-            players: [],
-            matches: []
-        };
-
-        tournaments.push(newTournament);
-        currentTournamentId = newId; // Tự động chuyển sang giải đấu vừa tạo
-
-        nameInput.value = "";
-        saveToLocalStorage();
-        renderTournamentSelector();
-        loadTournamentData();
-    }
-
-    // Chuyển đổi qua lại giữa các giải đấu trong quá khứ hoặc hiện tại
-    function switchTournament() {
-        const selector = document.getElementById('tournamentSelector');
-        currentTournamentId = selector.value;
-        loadTournamentData();
-    }
-
-    // Xóa giải đấu đang chọn khỏi lịch sử hệ thống
-    function deleteCurrentTournament() {
-        if (!currentTournamentId) return;
-        
-        const currentTour = tournaments.find(t => t.id === currentTournamentId);
-        if (confirm(`Bạn có chắc chắn muốn XÓA TOÀN BỘ giải đấu "${currentTour.name}" cùng tất cả lịch sử đấu không?`)) {
-            tournaments = tournaments.filter(t => t.id !== currentTournamentId);
+        if (localMatches) {
+            matches = JSON.parse(localMatches);
+            // Tải lại giao diện lịch sử trận đấu
+            const historyDiv = document.getElementById('matchHistory');
+            if (matches.length > 0) historyDiv.innerHTML = "";
             
-            // Nếu còn giải đấu khác thì chuyển qua giải đầu tiên, không thì đặt về rỗng
-            if (tournaments.length > 0) {
-                currentTournamentId = tournaments[0].id;
-            } else {
-                currentTournamentId = null;
-            }
-            
-            saveToLocalStorage();
-            renderTournamentSelector();
-            loadTournamentData();
-        }
-    }
-
-    // Vẽ lại danh sách thẻ Select chọn giải đấu
-    function renderTournamentSelector() {
-        const selector = document.getElementById('tournamentSelector');
-        selector.innerHTML = "";
-
-        if (tournaments.length === 0) {
-            selector.innerHTML = "<option value=''>-- Chưa có giải đấu nào --</option>";
-            return;
+            matches.forEach((m, index) => {
+                let p1Name = players.find(p => p.id === m.p1)?.name || "Ẩn danh";
+                let p2Name = players.find(p => p.id === m.p2)?.name || "Ẩn danh";
+                let matchText = `Trận ${index + 1}: ${p1Name} vs ${p2Name} ➔ Kết quả: ${m.result}`;
+                historyDiv.innerHTML += `<div class="match-item">${matchText}</div>`;
+            });
         }
 
-        tournaments.forEach(t => {
-            let opt = document.createElement('option');
-            opt.value = t.id;
-            opt.innerText = t.name;
-            if (t.id === currentTournamentId) opt.selected = true;
-            selector.appendChild(opt);
-        });
-    }
-
-    // Tải thông tin và cập nhật giao diện cho giải đấu đang kích hoạt
-    function loadTournamentData() {
-        const mainArea = document.getElementById('mainTournamentArea');
-        
-        if (!currentTournamentId || tournaments.length === 0) {
-            mainArea.classList.add('hidden-section');
-            document.getElementById('currentTournamentTitle').innerText = "Vui lòng tạo giải đấu mới";
-            return;
-        }
-
-        mainArea.classList.remove('hidden-section');
-        const tour = tournaments.find(t => t.id === currentTournamentId);
-        document.getElementById('currentTournamentTitle').innerText = `Đang Xem: ${tour.name}`;
-
-        // Nạp lịch sử trận đấu của giải này lên UI
-        const historyDiv = document.getElementById('matchHistory');
-        historyDiv.innerHTML = tour.matches.length === 0 ? "Chưa có trận đấu nào diễn ra." : "";
-        
-        tour.matches.forEach((m, index) => {
-            let p1Name = tour.players.find(p => p.id === m.p1)?.name || "Ẩn danh";
-            let p2Name = tour.players.find(p => p.id === m.p2)?.name || "Ẩn danh";
-            let matchText = `Trận ${index + 1}: ${p1Name} vs ${p2Name} ➔ Kết quả: ${m.result}`;
-            historyDiv.innerHTML += `<div class="match-item">${matchText}</div>`;
-        });
-
+        // Cập nhật lại toàn bộ giao diện sau khi tải dữ liệu
         updatePlayerSelects();
         updateRegisteredList();
         calculateStandings();
     }
 
-
-    // --- 2. NHÓM HÀM QUẢN LÝ TRONG MỘT GIẢI ĐẤU CỤ THỂ ---
-
-    function getCurrentTournament() {
-        return tournaments.find(t => t.id === currentTournamentId);
+    // Hiệu ứng nhấp nháy báo hiệu đã lưu thành công
+    function showStorageStatus() {
+        const badge = document.getElementById('storageStatus');
+        badge.innerText = "⏳ Đang lưu...";
+        badge.style.backgroundColor = "#e67e22";
+        setTimeout(() => {
+            badge.innerText = "✓ Đã lưu tự động";
+            badge.style.backgroundColor = "#27ae60";
+        }, 500);
     }
 
+    // Thêm kỳ thủ mới
     function addPlayer() {
-        const tour = getCurrentTournament();
-        if (!tour) return;
-
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim();
         
@@ -343,13 +226,13 @@
             alert("Vui lòng nhập tên kỳ thủ!");
             return;
         }
-        if (tour.players.some(p => p.name === name)) {
-            alert("Kỳ thủ này đã được đăng ký trong giải đấu này!");
+        if (players.some(p => p.name === name)) {
+            alert("Kỳ thủ này đã tồn tại!");
             return;
         }
 
-        tour.players.push({
-            id: tour.players.length > 0 ? Math.max(...tour.players.map(p => p.id)) + 1 : 0,
+        players.push({
+            id: players.length > 0 ? Math.max(...players.map(p => p.id)) + 1 : 0, // Đảm bảo ID không trùng
             name: name,
             opponents: [],
             points: 0,
@@ -362,30 +245,28 @@
         updatePlayerSelects();
         updateRegisteredList();
         calculateStandings();
-        saveToLocalStorage();
+        saveToLocalStorage(); // Lưu trạng thái
     }
 
+    // Cập nhật danh sách hiển thị tên kỳ thủ đã đăng ký
     function updateRegisteredList() {
-        const tour = getCurrentTournament();
         const listDiv = document.getElementById('registeredPlayers');
-        if(!tour || tour.players.length === 0) {
+        if(players.length === 0) {
             listDiv.innerText = "Chưa có kỳ thủ nào.";
         } else {
-            listDiv.innerText = tour.players.map(p => p.name).join(", ");
+            listDiv.innerText = players.map(p => p.name).join(", ");
         }
     }
 
+    // Cập nhật các ô Chọn Kỳ Thủ trong form nhập kết quả
     function updatePlayerSelects() {
-        const tour = getCurrentTournament();
         const p1Select = document.getElementById('player1');
         const p2Select = document.getElementById('player2');
         
         p1Select.innerHTML = "";
         p2Select.innerHTML = "";
 
-        if (!tour) return;
-
-        tour.players.forEach(p => {
+        players.forEach(p => {
             let opt1 = document.createElement('option');
             opt1.value = p.id;
             opt1.innerText = p.name;
@@ -398,110 +279,115 @@
         });
     }
 
+    // Ghi nhận trận đấu mới
     function addMatch() {
-        const tour = getCurrentTournament();
-        if (!tour) return;
-
         const p1Id = parseInt(document.getElementById('player1').value);
         const p2Id = parseInt(document.getElementById('player2').value);
         const result = document.getElementById('matchResult').value;
 
         if (p1Id === p2Id) {
-            alert("Kỳ thủ không thể tự đấu với chính mình!");
+            alert("Một kỳ thủ không thể tự thi đấu với chính mình!");
             return;
         }
 
-        tour.matches.push({ p1: p1Id, p2: p2Id, result: result });
+        matches.push({ p1: p1Id, p2: p2Id, result: result });
         
-        // Cập nhật giao diện lịch sử đấu tức thì
+        // Hiển thị lịch sử trận đấu
         const historyDiv = document.getElementById('matchHistory');
-        if(tour.matches.length === 1) historyDiv.innerHTML = "";
+        if(matches.length === 1) historyDiv.innerHTML = "";
         
-        let p1Name = tour.players.find(p => p.id === p1Id).name;
-        let p2Name = tour.players.find(p => p.id === p2Id).name;
+        let p1Name = players.find(p => p.id === p1Id).name;
+        let p2Name = players.find(p => p.id === p2Id).name;
         
-        let matchText = `Trận ${tour.matches.length}: ${p1Name} vs ${p2Name} ➔ Kết quả: ${result}`;
+        let matchText = `Trận ${matches.length}: ${p1Name} vs ${p2Name} ➔ Kết quả: ${result}`;
         historyDiv.innerHTML += `<div class="match-item">${matchText}</div>`;
 
         calculateStandings();
-        saveToLocalStorage();
+        saveToLocalStorage(); // Lưu trạng thái
     }
 
-    // Thuật toán tính điểm và xếp hạng áp dụng đối kháng ngầm, Buchholz, Ván thắng, Sonneborn
+    // Tính toán toàn bộ điểm và hệ số phụ để xếp hạng
     function calculateStandings() {
-        const tour = getCurrentTournament();
-        const tbody = document.querySelector("#rankTable tbody");
-        tbody.innerHTML = "";
-
-        if (!tour || tour.players.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">Chưa có dữ liệu xếp hạng.</td></tr>`;
-            return;
-        }
-
-        // Reset bộ đếm
-        tour.players.forEach(p => {
-            p.points = 0; p.wins = 0; p.buchholz = 0; p.sonneborn = 0; p.opponents = [];
+        players.forEach(p => {
+            p.points = 0;
+            p.wins = 0;
+            p.buchholz = 0;
+            p.sonneborn = 0;
+            p.opponents = [];
         });
 
-        // Vòng 1: Tính điểm cơ bản và lưu quan hệ đối kháng ván đấu
-        tour.matches.forEach(m => {
-            let p1 = tour.players.find(p => p.id === m.p1);
-            let p2 = tour.players.find(p => p.id === m.p2);
-            if (!p1 || !p2) return;
+        // Bước 1: Tính Điểm cơ bản, Số ván thắng và ghi nhận Đối kháng trực tiếp
+        matches.forEach(m => {
+            let p1 = players.find(p => p.id === m.p1);
+            let p2 = players.find(p => p.id === m.p2);
+
+            // Phòng trường hợp kỳ thủ cũ bị xóa nhưng trận đấu vẫn nằm trong lịch sử
+            if (!p1 || !p2) return; 
 
             if (m.result === "1-0") {
-                p1.points += 1; p1.wins += 1;
+                p1.points += 1;
+                p1.wins += 1;
                 p1.opponents.push({ oppId: m.p2, score: 1 });
                 p2.opponents.push({ oppId: m.p1, score: 0 });
             } else if (m.result === "0-1") {
-                p2.points += 1; p2.wins += 1;
+                p2.points += 1;
+                p2.wins += 1;
                 p1.opponents.push({ oppId: m.p2, score: 0 });
                 p2.opponents.push({ oppId: m.p1, score: 1 });
             } else if (m.result === "0.5-0.5") {
-                p1.points += 0.5; p2.points += 0.5;
+                p1.points += 0.5;
+                p2.points += 0.5;
                 p1.opponents.push({ oppId: m.p2, score: 0.5 });
                 p2.opponents.push({ oppId: m.p1, score: 0.5 });
             }
         });
 
-        // Vòng 2: Tính hệ số phụ Buchholz và Sonneborn-Berger
-        tour.players.forEach(p => {
-            p.opponents.forEach(relation => {
-                let opponent = tour.players.find(o => o.id === relation.oppId);
+        // Bước 2: Tính hệ số Buchholz và Sonneborn-Berger
+        players.forEach(p => {
+            p.opponents.forEach(oppRelation => {
+                let opponent = players.find(o => o.id === oppRelation.oppId);
                 if (!opponent) return;
                 
                 p.buchholz += opponent.points;
 
-                if (relation.score === 1) {
+                if (oppRelation.score === 1) {
                     p.sonneborn += opponent.points;
-                } else if (relation.score === 0.5) {
+                } else if (oppRelation.score === 0.5) {
                     p.sonneborn += (opponent.points * 0.5);
                 }
             });
         });
 
-        // Vòng 3: Sắp xếp theo thứ tự ưu tiên chặt chẽ
-        let rankedPlayers = [...tour.players];
+        // Bước 3: Sắp xếp bảng xếp hạng
+        let rankedPlayers = [...players];
+        
         rankedPlayers.sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points;
 
-            // Thứ tự 1: Tính Đối kháng trực tiếp ngầm giữa hai người bằng điểm
-            let directMatch = a.opponents.filter(o => o.oppId === b.id);
-            if (directMatch.length > 0) {
-                let scoreA = directMatch.reduce((sum, item) => sum + item.score, 0);
-                let scoreB = directMatch.length * 1 - scoreA;
-                if (scoreA !== scoreB) return scoreB - scoreA;
+            // Hệ số phụ 1: Đối kháng trực tiếp (Tính ngầm)
+            let directMatchesA = a.opponents.filter(o => o.oppId === b.id);
+            if (directMatchesA.length > 0) {
+                let scoreA = directMatchesA.reduce((sum, current) => sum + current.score, 0);
+                let scoreB = directMatchesA.length * 1 - scoreA;
+                if (scoreA !== scoreB) {
+                    return scoreB - scoreA;
+                }
             }
 
-            // Thứ tự 2: Hệ số Buchholz
             if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
-            // Thứ tự 3: Số ván thắng nhiều hơn
             if (b.wins !== a.wins) return b.wins - a.wins;
-            // Thứ tự 4: Hệ số Sonneborn-Berger
             return b.sonneborn - a.sonneborn;
         });
 
-        // Hiển thị lên bảng HTML công khai công bằng
+        // Bước 4: Hiển thị lên giao diện HTML
+        const tbody = document.querySelector("#rankTable tbody");
+        tbody.innerHTML = "";
+
+        if(rankedPlayers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">Chưa có dữ liệu xếp hạng.</td></tr>`;
+            return;
+        }
+
         rankedPlayers.forEach((p, index) => {
             let row = `<tr>
                 <td><b>${index + 1}</b></td>
@@ -515,34 +401,28 @@
         });
     }
 
-
-    // --- 3. NHÓM HÀM LƯU TRỮ VÀ KHỞI CHẠY (LOCALSTORAGE) ---
-
-    function saveToLocalStorage() {
-        localStorage.setItem('chess_multi_tournaments', JSON.stringify(tournaments));
-        localStorage.setItem('chess_current_tournament_id', currentTournamentId);
-        
-        // Hiển thị Badge thông báo lưu
-        const badge = document.getElementById('storageStatus');
-        badge.innerText = "⏳ Đang lưu...";
-        badge.style.backgroundColor = "#e67e22";
-        setTimeout(() => {
-            badge.innerText = "✓ Đã lưu tự động";
-            badge.style.backgroundColor = "#27ae60";
-        }, 400);
+    // Reset giải đấu và XÓA sạch bộ nhớ tạm
+    function resetTournament() {
+        if(confirm("Bạn có chắc chắn muốn xóa hết kỳ thủ và kết quả để làm lại từ đầu không?")) {
+            players = [];
+            matches = [];
+            localStorage.removeItem('chess_tournament_players');
+            localStorage.removeItem('chess_tournament_matches');
+            
+            document.getElementById('matchHistory').innerHTML = "Chưa có trận đấu nào diễn ra.";
+            updatePlayerSelects();
+            updateRegisteredList();
+            calculateStandings();
+            
+            const badge = document.getElementById('storageStatus');
+            badge.innerText = "Đã xóa dữ liệu";
+            badge.style.backgroundColor = "#e74c3c";
+        }
     }
 
+    // CHẠY ĐẦU TIÊN: Khi trang web tải xong, tự động nạp lại dữ liệu cũ nếu có
     window.onload = function() {
-        const localTournaments = localStorage.getItem('chess_multi_tournaments');
-        const localCurrentId = localStorage.getItem('chess_current_tournament_id');
-
-        if (localTournaments) {
-            tournaments = JSON.parse(localTournaments);
-            currentTournamentId = localCurrentId;
-        }
-
-        renderTournamentSelector();
-        loadTournamentData();
+        loadFromLocalStorage();
     };
 </script>
 
