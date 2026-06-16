@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Đa Giải Đấu Cờ Vua</title>
+    <title>Hệ Thống Đa Giải Đấu Cờ Vua - Hệ Swiss & Xuất Excel</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,7 +21,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        h1, h2, h3 {
+        h1, h2, h3, h4 {
             text-align: center;
             color: #2c3e50;
             margin-top: 5px;
@@ -51,6 +52,7 @@
         .tournament-controls div {
             flex: 1;
             min-width: 200px;
+            box-sizing: border-box;
         }
         .flex-container {
             display: flex;
@@ -87,47 +89,181 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        button:hover {
-            background-color: #2980b9;
-        }
+        button:hover { background-color: #2980b9; }
         button.btn-success { background-color: #27ae60; }
         button.btn-success:hover { background-color: #219653; }
         button.btn-danger { background-color: #e74c3c; }
         button.btn-danger:hover { background-color: #c0392b; }
+        button.btn-purple { background-color: #9b59b6; }
+        button.btn-purple:hover { background-color: #8e44ad; }
+        button.btn-warning { background-color: #f39c12; color: white; }
+        button.btn-warning:hover { background-color: #d35400; }
         
+        /* KHU VỰC TIÊU ĐỀ BẢNG XẾP HẠNG & NÚT EXCEL */
+        .table-header-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .table-header-wrapper h3 {
+            margin: 0;
+            flex: 1;
+            text-align: left;
+        }
+        .btn-excel {
+            background-color: #1f7347; /* Xanh lá đặc trưng của Excel */
+            color: white;
+            width: auto;
+            padding: 8px 16px;
+            margin: 0;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn-excel:hover {
+            background-color: #165233;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            margin-top: 10px;
         }
         th, td {
             border: 1px solid #e2e8f0;
             padding: 12px;
             text-align: center;
         }
-        th {
-            background-color: #34495e;
-            color: white;
-        }
+        th { background-color: #34495e; color: white; }
         tr:nth-child(even) { background-color: #f8fafc; }
         tr:hover { background-color: #f1f5f9; }
         
+        .pairing-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+            border-radius: 5px;
+        }
+        .pairing-player { flex: 2.5; font-weight: 500; }
+        .pairing-vs { flex: 0.6; text-align: center; color: #7f8c8d; font-weight: bold; }
+        
+        .pairing-result { flex: 3.4; min-width: 220px; }
+        .pairing-result select { margin: 0; padding: 8px 30px 8px 10px; }
+
         .match-list {
-            max-height: 180px;
+            max-height: 250px;
             overflow-y: auto;
             border: 1px solid #e2e8f0;
-            padding: 10px;
+            padding: 15px;
             background: #fff;
             border-radius: 4px;
         }
-        .match-item {
-            padding: 6px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.9em;
+        .history-round-section {
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background-color: #f8fafc;
+            overflow: hidden;
         }
-        .hidden-section {
-            display: none !important;
+        .history-round-header {
+            background-color: #475569;
+            color: white;
+            padding: 6px 12px;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+        .history-round-body {
+            padding: 5px 10px;
+        }
+        .match-item { 
+            padding: 6px 0; 
+            border-bottom: 1px dashed #e2e8f0; 
+            font-size: 0.9em; 
+        }
+        .match-item:last-child { border-bottom: none; }
+        .hidden-section { display: none !important; }
+
+        .player-list-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            border-radius: 5px;
+            padding: 5px;
+            margin-top: 8px;
+        }
+        .player-tag {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background-color: #f1f5f9;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-size: 0.95em;
+            border: 1px solid #e2e8f0;
+        }
+        .btn-delete-player {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 7px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            width: auto;
+            margin: 0;
+        }
+        .btn-delete-player:hover { background-color: #c0392b; }
+        
+        .dropped-row {
+            background-color: #fce4d6 !important;
+            color: #94a3b8;
+        }
+        .dropped-text {
+            color: #ef4444;
+            font-size: 0.85em;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .player-name-cell {
+            position: relative;
+            text-align: center; 
+            padding-left: 15px;
+            padding-right: 15px;
+            cursor: default;
+        }
+        .hover-action-container {
+            display: none; 
+            position: absolute;
+            right: 8px; 
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        .player-name-cell:hover .hover-action-container {
+            display: inline-block;
+        }
+        .btn-action-inline {
+            padding: 3px 8px !important;
+            font-size: 11px !important;
+            margin: 0 !important;
+            width: auto !important;
+            border-radius: 3px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
     </style>
 </head>
@@ -135,20 +271,20 @@
 
 <div class="container">
     <span class="status-badge" id="storageStatus">Đã lưu tự động</span>
-    <h1>🏆 Hệ Thống Quản Lý Giải Đấu Cờ Vua</h1>
+    <h1>🏆 Hệ Thống Điều Hành Giải Swiss & Quản Lý Kỳ Thủ</h1>
     
     <div class="tournament-manager">
         <h3>Quản Lý Danh Sách Giải Đấu</h3>
         <div class="tournament-controls">
             <div>
-                <label style="font-weight: bold;">Tạo giải đấu mới (Bấm Enter để tạo):</label>
-                <input type="text" id="newTournamentName" placeholder="Ví dụ: Giải CLB Tháng 6, Giải Vô Địch..." onkeydown="handleTournamentEnter(event)" />
+                <label style="font-weight: bold;">Tạo giải đấu mới (Ấn Enter):</label>
+                <input type="text" id="newTournamentName" placeholder="Ví dụ: Giải Swiss Hè 2026..." onkeydown="handleTournamentEnter(event)" />
                 <button class="btn-success" onclick="createNewTournament()">Khởi Tạo Giải Đấu</button>
             </div>
             <div>
-                <label style="font-weight: bold;">Chọn giải đấu đang chạy / Lịch sử:</label>
+                <label style="font-weight: bold;">Chọn hoặc xem lịch sử giải:</label>
                 <select id="tournamentSelector" onchange="switchTournament()"></select>
-                <button class="btn-danger" onclick="deleteCurrentTournament()">Xóa Giải Đấu Đang Chọn</button>
+                <button class="btn-danger" onclick="deleteCurrentTournament()">Xóa Giải Đấu</button>
             </div>
         </div>
     </div>
@@ -157,56 +293,55 @@
         <h2 id="currentTournamentTitle" style="color: #2980b9; border-bottom: 2px dashed #3498db; padding-bottom: 10px;">Vui lòng tạo giải đấu</h2>
         
         <div class="flex-container">
-            <div class="panel">
-                <h3>Đăng Ký Kỳ Thủ</h3>
-                <label style="font-weight: bold;">Nhập tên (Bấm Enter để thêm):</label>
+            <div class="panel" id="registrationPanel">
+                <h3>1. Giai Đoạn: Đăng Ký Kỳ Thủ</h3>
+                <label style="font-weight: bold;">Nhập tên (Ấn Enter):</label>
                 <input type="text" id="playerName" placeholder="Nhập tên kỳ thủ..." onkeydown="handlePlayerEnter(event)">
                 <button onclick="addPlayer()">Thêm Kỳ Thủ</button>
                 
-                <h4 style="margin-bottom:5px;">Danh sách đã thêm:</h4>
-                <div id="registeredPlayers" style="font-style: italic; color: #64748b; font-size: 0.95em;">Chưa có kỳ thủ nào.</div>
+                <h4 style="margin-bottom:5px; text-align:left;">Danh sách đã thêm (<span id="playerCount">0</span>):</h4>
+                <div class="player-list-container" id="registeredPlayersContainer"></div>
             </div>
 
             <div class="panel">
-                <h3>Nhập Kết Quả Trận Đấu</h3>
-                <label for="player1">Kỳ thủ 1 (Trắng):</label>
-                <select id="player1"></select>
+                <h3>2. Giai Đoạn: Điều Hành Vòng Đấu</h3>
+                <div id="swissControls">
+                    <p id="roundStatus" style="font-weight: bold; color: #d35400; text-align: center;">Chưa bắt đầu giải đấu.</p>
+                    <button class="btn-purple" id="btnPairing" onclick="generateSwissPairings()">Bốc Thăm Vòng Tiếp Theo</button>
+                    <button class="btn-warning" id="btnUndo" style="margin-top: 5px;" onclick="undoLastRound()">↩ Quay Lại Vòng Trước (Sửa lỗi nhập sai)</button>
+                </div>
                 
-                <label for="player2">Kỳ thủ 2 (Đen):</label>
-                <select id="player2"></select>
-                
-                <label for="matchResult">Kết quả:</label>
-                <select id="matchResult">
-                    <option value="1-0">1 - 0 (Trắng thắng)</option>
-                    <option value="0-1">0 - 1 (Đen thắng)</option>
-                    <option value="0.5-0.5">0.5 - 0.5 (Hòa)</option>
-                </select>
-                
-                <button class="btn-success" onclick="addMatch()">Cập Nhật Trận Đấu</button>
+                <div id="activePairingsArea" style="margin-top: 15px;" class="hidden-section">
+                    <h4 id="currentRoundLabel">Cặp Đấu Vòng</h4>
+                    <div id="pairingsList"></div>
+                    <button class="btn-success" style="margin-top: 10px;" onclick="submitRoundResults()">Xác Nhận & Kết Thúc Vòng</button>
+                </div>
             </div>
         </div>
 
         <div class="panel" style="margin-bottom: 20px;">
-            <h3>Lịch Sử Trận Đấu Trong Giải</h3>
+            <h3>Lịch Sử Các Trận Đấu Đã Qua</h3>
             <div class="match-list" id="matchHistory">Chưa có trận đấu nào diễn ra.</div>
         </div>
 
-        <h3>Bảng Xếp Hạng Hiện Tại</h3>
+        <div class="table-header-wrapper">
+            <h3>Bảng Xếp Hạng Hiện Tại</h3>
+            <button class="btn-excel" onclick="exportTableToExcel()">📊 Xuất File Excel Cập Nhật</button>
+        </div>
+        
         <table id="rankTable">
             <thead>
                 <tr>
                     <th>Hạng</th>
                     <th>Tên Kỳ Thủ</th>
-                    <th>Điểm số</th>
+                    <th>Điểm</th>
                     <th>Buchholz</th>
-                    <th>Số Ván Thắng</th>
+                    <th>Ván Thắng</th>
                     <th>Sonneborn</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td colspan="6" style="text-align:center">Chưa có dữ liệu.</td>
-                </tr>
+                <tr><td colspan="6" style="text-align:center">Chưa có dữ liệu.</td></tr>
             </tbody>
         </table>
     </div>
@@ -216,46 +351,84 @@
     let tournaments = [];
     let currentTournamentId = null;
 
-    // --- CẢI TIẾN: BẮT SỰ KIỆN PHÍM ENTER ---
-    
-    // Xử lý Enter khi nhập tên kỳ thủ
     function handlePlayerEnter(event) {
-        if (event.key === "Enter") {
-            event.preventDefault(); // Ngăn chặn hành vi mặc định của form (nếu có)
-            addPlayer();            // Gọi hàm thêm kỳ thủ luôn
-        }
+        if (event.key === "Enter") { event.preventDefault(); addPlayer(); }
     }
-
-    // Xử lý Enter khi tạo tên Giải Đấu mới
     function handleTournamentEnter(event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            createNewTournament();  // Gọi hàm tạo giải đấu luôn
-        }
+        if (event.key === "Enter") { event.preventDefault(); createNewTournament(); }
     }
 
-    // --- CÁC HÀM QUẢN LÝ HỆ THỐNG ĐA GIẢI ĐẤU ---
+    // --- HÀM XUẤT EXCEL CHUYÊN NGHIỆP ---
+    function exportTableToExcel() {
+        const tour = getCurrentTournament();
+        if (!tour || tour.players.length === 0) return alert("Không có dữ liệu xếp hạng để xuất!");
 
+        // Lấy dữ liệu thuần từ bảng hiển thị hiện tại để tránh dính mã HTML của nút bấm ẩn
+        const table = document.getElementById("rankTable");
+        const rows = table.querySelectorAll("tbody tr");
+        
+        // Chuẩn bị mảng dữ liệu với hàng tiêu đề ban đầu
+        let excelData = [
+            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Buchholz", "Ván Thắng", "Sonneborn"]
+        ];
+
+        rows.forEach(tr => {
+            const cells = tr.querySelectorAll("td");
+            if(cells.length < 6) return; // Bỏ qua hàng thông báo trống
+
+            let rank = cells[0].innerText;
+            // Làm sạch văn bản: Chỉ lấy tên kỳ thủ, loại bỏ các ký hiệu chữ (Đã bỏ cuộc) thừa thãi nếu có
+            let rawName = cells[1].querySelector("span") ? cells[1].querySelector("span").innerText : cells[1].innerText;
+            let cleanName = rawName.replace("(Đã bỏ cuộc)", "").trim();
+            
+            let points = parseFloat(cells[2].innerText);
+            let buchholz = parseFloat(cells[3].innerText);
+            let wins = parseInt(cells[4].innerText);
+            let sonneborn = parseFloat(cells[5].innerText);
+
+            excelData.push([rank, cleanName, points, buchholz, wins, sonneborn]);
+        });
+
+        // Tạo cấu trúc Workbook Excel bằng SheetJS
+        const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Bảng Xếp Hạng");
+
+        // Định dạng độ rộng cột tự động để khi in ấn/mở file không bị khuất chữ
+        const max_columns_width = [
+            { wch: 8 },  // Hạng
+            { wch: 26 }, // Tên Kỳ Thủ
+            { wch: 10 }, // Điểm
+            { wch: 12 }, // Buchholz
+            { wch: 12 }, // Ván Thắng
+            { wch: 12 }  // Sonneborn
+        ];
+        worksheet['!cols'] = max_columns_width;
+
+        // Tiến hành tải xuống máy
+        let cleanTourName = tour.name.replace(/[^a-aA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư\s]/g, '_');
+        let filename = `Bang_Xep_Hang_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+    }
+
+    // --- HÀM HỆ THỐNG ĐA GIẢI ĐẤU ---
     function createNewTournament() {
         const nameInput = document.getElementById('newTournamentName');
         const name = nameInput.value.trim();
-
-        if (name === "") {
-            alert("Vui lòng nhập tên giải đấu muốn tạo!");
-            return;
-        }
+        if (name === "") return alert("Vui lòng nhập tên giải!");
 
         const newId = Date.now().toString();
-        const newTournament = {
+        tournaments.push({
             id: newId,
             name: name,
             players: [],
-            matches: []
-        };
+            matches: [],
+            currentRound: 0,
+            roundActive: false,
+            currentPairings: [] 
+        });
 
-        tournaments.push(newTournament);
         currentTournamentId = newId;
-
         nameInput.value = "";
         saveToLocalStorage();
         renderTournamentSelector();
@@ -263,24 +436,16 @@
     }
 
     function switchTournament() {
-        const selector = document.getElementById('tournamentSelector');
-        currentTournamentId = selector.value;
+        currentTournamentId = document.getElementById('tournamentSelector').value;
         loadTournamentData();
     }
 
     function deleteCurrentTournament() {
         if (!currentTournamentId) return;
-        
-        const currentTour = tournaments.find(t => t.id === currentTournamentId);
-        if (confirm(`Bạn có chắc chắn muốn XÓA TOÀN BỘ giải đấu "${currentTour.name}" không?`)) {
+        const tour = getCurrentTournament();
+        if (confirm(`Bạn muốn XÓA giải "${tour.name}"?`)) {
             tournaments = tournaments.filter(t => t.id !== currentTournamentId);
-            
-            if (tournaments.length > 0) {
-                currentTournamentId = tournaments[0].id;
-            } else {
-                currentTournamentId = null;
-            }
-            
+            currentTournamentId = tournaments.length > 0 ? tournaments[0].id : null;
             saveToLocalStorage();
             renderTournamentSelector();
             loadTournamentData();
@@ -290,164 +455,385 @@
     function renderTournamentSelector() {
         const selector = document.getElementById('tournamentSelector');
         selector.innerHTML = "";
-
         if (tournaments.length === 0) {
             selector.innerHTML = "<option value=''>-- Chưa có giải đấu nào --</option>";
             return;
         }
-
         tournaments.forEach(t => {
             let opt = document.createElement('option');
-            opt.value = t.id;
-            opt.innerText = t.name;
+            opt.value = t.id; opt.innerText = t.name;
             if (t.id === currentTournamentId) opt.selected = true;
             selector.appendChild(opt);
         });
     }
 
-    function loadTournamentData() {
-        const mainArea = document.getElementById('mainTournamentArea');
-        
-        if (!currentTournamentId || tournaments.length === 0) {
-            mainArea.classList.add('hidden-section');
-            document.getElementById('currentTournamentTitle').innerText = "Vui lòng tạo giải đấu mới";
-            return;
-        }
-
-        mainArea.classList.remove('hidden-section');
-        const tour = tournaments.find(t => t.id === currentTournamentId);
-        document.getElementById('currentTournamentTitle').innerText = `Đang Xem: ${tour.name}`;
-
-        const historyDiv = document.getElementById('matchHistory');
-        historyDiv.innerHTML = tour.matches.length === 0 ? "Chưa có trận đấu nào diễn ra." : "";
-        
-        tour.matches.forEach((m, index) => {
-            let p1Name = tour.players.find(p => p.id === m.p1)?.name || "Ẩn danh";
-            let p2Name = tour.players.find(p => p.id === m.p2)?.name || "Ẩn danh";
-            let matchText = `Trận ${index + 1}: ${p1Name} vs ${p2Name} ➔ Kết quả: ${m.result}`;
-            historyDiv.innerHTML += `<div class="match-item">${matchText}</div>`;
-        });
-
-        updatePlayerSelects();
-        updateRegisteredList();
-        calculateStandings();
-    }
-
-    // --- CÁC HÀM QUẢN LÝ TRONG MỘT GIẢI ĐẤU ---
-
     function getCurrentTournament() {
         return tournaments.find(t => t.id === currentTournamentId);
     }
 
+    // --- ĐIỀU HÀNH GIẢI ĐẤU & THUẬT TOÁN SWISS ---
+    function loadTournamentData() {
+        const mainArea = document.getElementById('mainTournamentArea');
+        if (!currentTournamentId || tournaments.length === 0) {
+            mainArea.classList.add('hidden-section');
+            return;
+        }
+        mainArea.classList.remove('hidden-section');
+        const tour = getCurrentTournament();
+        document.getElementById('currentTournamentTitle').innerText = `Đang Điều Hành: ${tour.name}`;
+
+        const roundStatus = document.getElementById('roundStatus');
+        const regPanel = document.getElementById('registrationPanel');
+        const btnPairing = document.getElementById('btnPairing');
+        const btnUndo = document.getElementById('btnUndo');
+
+        if (tour.currentRound === 0) {
+            roundStatus.innerText = "Giải đấu chưa bắt đầu. Hãy thêm kỳ thủ!";
+            regPanel.classList.remove('hidden-section');
+            btnPairing.innerText = "Khởi Động Giải & Bốc Thăm Vòng 1";
+            btnUndo.classList.add('hidden-section'); 
+        } else {
+            roundStatus.innerText = `Vòng ${tour.currentRound} ${tour.roundActive ? 'đang bốc thăm nhập điểm' : 'đã kết thúc hoàn toàn'}`;
+            regPanel.classList.add('hidden-section'); 
+            btnPairing.innerText = `Bốc Thăm Vòng ${tour.currentRound + 1}`;
+            btnUndo.classList.remove('hidden-section'); 
+        }
+
+        btnPairing.disabled = tour.roundActive;
+
+        const pairingsArea = document.getElementById('activePairingsArea');
+        if (tour.roundActive && tour.currentPairings.length > 0) {
+            pairingsArea.classList.remove('hidden-section');
+            document.getElementById('currentRoundLabel').innerText = `Nhập Kết Quả Vòng ${tour.currentRound}`;
+            renderActivePairings(tour);
+        } else {
+            pairingsArea.classList.add('hidden-section');
+        }
+
+        const historyDiv = document.getElementById('matchHistory');
+        if (tour.matches.length === 0) {
+            historyDiv.innerHTML = "Chưa có trận đấu nào diễn ra.";
+        } else {
+            historyDiv.innerHTML = "";
+            let maxRoundInHistory = 0;
+            tour.matches.forEach(m => { if (m.round > maxRoundInHistory) maxRoundInHistory = m.round; });
+
+            for (let r = 1; r <= maxRoundInHistory; r++) {
+                let roundMatches = tour.matches.filter(m => m.round === r);
+                if (roundMatches.length === 0) continue;
+
+                let section = document.createElement('div');
+                section.className = "history-round-section";
+                
+                let header = document.createElement('div');
+                header.className = "history-round-header";
+                header.innerText = `VÒNG ĐẤU ${r}`;
+                section.appendChild(header);
+
+                let body = document.createElement('div');
+                body.className = "history-round-body";
+
+                roundMatches.forEach(m => {
+                    let p1 = tour.players.find(p => p.id === m.p1)?.name || "Ẩn danh";
+                    let p2 = tour.players.find(p => p.id === m.p2)?.name || "Ẩn danh";
+                    
+                    let item = document.createElement('div');
+                    item.className = "match-item";
+                    item.innerHTML = `⚔️ <b>${p1}</b> vs <b>${p2}</b> ➔ Kết quả: <span style="color:#2980b9; font-weight:bold;">${m.result}</span>`;
+                    body.appendChild(item);
+                });
+
+                section.appendChild(body);
+                historyDiv.appendChild(section);
+            }
+        }
+
+        updateRegisteredList();
+        calculateStandings();
+    }
+
     function addPlayer() {
         const tour = getCurrentTournament();
-        if (!tour) return;
+        if (tour.currentRound > 0) return alert("Giải đấu đã bắt đầu, không thể thêm kỳ thủ!");
 
         const nameInput = document.getElementById('playerName');
         const name = nameInput.value.trim();
-        
-        if (name === "") {
-            alert("Vui lòng nhập tên kỳ thủ!");
-            return;
-        }
-        if (tour.players.some(p => p.name === name)) {
-            alert("Kỳ thủ này đã được đăng ký trong giải đấu này!");
-            return;
-        }
+        if (name === "") return alert("Vui lòng nhập tên kỳ thủ!");
+        if (tour.players.some(p => p.name === name && p.id !== -1)) return alert("Kỳ thủ này đã tồn tại!");
+
+        const uniquePlayerId = Date.now() + Math.floor(Math.random() * 100);
 
         tour.players.push({
-            id: tour.players.length > 0 ? Math.max(...tour.players.map(p => p.id)) + 1 : 0,
+            id: uniquePlayerId,
             name: name,
-            opponents: [],
-            points: 0,
-            buchholz: 0,
-            wins: 0,
-            sonneborn: 0
+            opponents: [], 
+            historyColors: [], 
+            points: 0, buchholz: 0, wins: 0, sonneborn: 0,
+            isDropped: false 
         });
 
         nameInput.value = "";
-        updatePlayerSelects();
         updateRegisteredList();
         calculateStandings();
         saveToLocalStorage();
-        
-        // Tự động tập trung (focus) lại ô nhập để nhập tiếp người khác cho nhanh
-        nameInput.focus(); 
+        nameInput.focus();
+    }
+
+    function deletePlayer(playerId) {
+        const tour = getCurrentTournament();
+        if (!tour || tour.currentRound > 0) return;
+
+        const playerObj = tour.players.find(p => p.id === playerId);
+        if (playerObj) {
+            if (confirm(`Bạn có chắc chắn muốn xóa kỳ thủ "${playerObj.name}" không?`)) {
+                tour.players = tour.players.filter(p => p.id !== playerId);
+                updateRegisteredList();
+                calculateStandings();
+                saveToLocalStorage();
+            }
+        }
+    }
+
+    function toggleDropPlayer(playerId) {
+        const tour = getCurrentTournament();
+        if (!tour) return;
+
+        const playerObj = tour.players.find(p => p.id === playerId);
+        if (!playerObj) return;
+
+        if (!playerObj.isDropped) {
+            if (confirm(`Bạn có chắc chắn muốn LOẠI kỳ thủ "${playerObj.name}" khỏi các vòng tiếp theo?\n(Kỳ thủ này sẽ bị xếp ở nhóm cuối bảng xếp hạng).`)) {
+                playerObj.isDropped = true;
+            }
+        } else {
+            if (confirm(`Bạn có muốn cho kỳ thủ "${playerObj.name}" QUAY LẠI giải đấu không?`)) {
+                playerObj.isDropped = false;
+            }
+        }
+
+        calculateStandings();
+        saveToLocalStorage();
+        loadTournamentData();
     }
 
     function updateRegisteredList() {
         const tour = getCurrentTournament();
-        const listDiv = document.getElementById('registeredPlayers');
-        if(!tour || tour.players.length === 0) {
-            listDiv.innerText = "Chưa có kỳ thủ nào.";
-        } else {
-            listDiv.innerText = tour.players.map(p => p.name).join(", ");
-        }
-    }
+        const containerDiv = document.getElementById('registeredPlayersContainer');
+        const countSpan = document.getElementById('playerCount');
+        if(!tour) return;
 
-    function updatePlayerSelects() {
-        const tour = getCurrentTournament();
-        const p1Select = document.getElementById('player1');
-        const p2Select = document.getElementById('player2');
-        
-        p1Select.innerHTML = "";
-        p2Select.innerHTML = "";
+        let realPlayers = tour.players.filter(p => p.id !== -1);
+        countSpan.innerText = realPlayers.length;
 
-        if (!tour) return;
-
-        tour.players.forEach(p => {
-            let opt1 = document.createElement('option');
-            opt1.value = p.id;
-            opt1.innerText = p.name;
-            p1Select.appendChild(opt1);
-
-            let opt2 = document.createElement('option');
-            opt2.value = p.id;
-            opt2.innerText = p.name;
-            p2Select.appendChild(opt2);
-        });
-    }
-
-    function addMatch() {
-        const tour = getCurrentTournament();
-        if (!tour) return;
-
-        const p1Id = parseInt(document.getElementById('player1').value);
-        const p2Id = parseInt(document.getElementById('player2').value);
-        const result = document.getElementById('matchResult').value;
-
-        if (p1Id === p2Id) {
-            alert("Kỳ thủ không thể tự đấu với chính mình!");
+        if (realPlayers.length === 0) {
+            containerDiv.innerHTML = `<div style="font-style: italic; color: #64748b; font-size: 0.95em; padding: 10px; text-align:center;">Chưa có ai.</div>`;
             return;
         }
 
-        tour.matches.push({ p1: p1Id, p2: p2Id, result: result });
-        
-        const historyDiv = document.getElementById('matchHistory');
-        if(tour.matches.length === 1) historyDiv.innerHTML = "";
-        
-        let p1Name = tour.players.find(p => p.id === p1Id).name;
-        let p2Name = tour.players.find(p => p.id === p2Id).name;
-        
-        let matchText = `Trận ${tour.matches.length}: ${p1Name} vs ${p2Name} ➔ Kết quả: ${result}`;
-        historyDiv.innerHTML += `<div class="match-item">${matchText}</div>`;
+        containerDiv.innerHTML = "";
+        realPlayers.forEach(p => {
+            let tag = document.createElement('div');
+            tag.className = "player-tag";
+            tag.innerHTML = `
+                <span>👤 ${p.name}</span>
+                <button class="btn-delete-player" onclick="deletePlayer(${p.id})">Xóa</button>
+            `;
+            containerDiv.appendChild(tag);
+        });
+    }
 
-        calculateStandings();
+    function generateSwissPairings() {
+        const tour = getCurrentTournament();
+        let activePlayers = tour.players.filter(p => p.id !== -1 && !p.isDropped);
+        
+        if (activePlayers.length < 2) {
+            return alert("Không đủ kỳ thủ đang hoạt động (tối thiểu là 2) để tiến hành bốc thăm!");
+        }
+
+        tour.players = tour.players.filter(p => p.id !== -1);
+
+        if (activePlayers.length % 2 !== 0) {
+            tour.players.push({
+                id: -1, name: "BYE (Miễn đấu)",
+                opponents: [], historyColors: [],
+                points: 0, buchholz: 0, wins: 0, sonneborn: 0,
+                isDropped: false
+            });
+        }
+
+        calculateStandings(); 
+
+        let pool = tour.players.filter(p => !p.isDropped).sort((a, b) => b.points - a.points);
+        let pairings = [];
+        let pairedIds = new Set();
+
+        for (let i = 0; i < pool.length; i++) {
+            let p1 = pool[i];
+            if (pairedIds.has(p1.id)) continue;
+
+            let foundOpponent = false;
+            for (let j = i + 1; j < pool.length; j++) {
+                let p2 = pool[j];
+                if (pairedIds.has(p2.id)) continue;
+
+                if (!p1.opponents.some(id => id === p2.id)) {
+                    let p1WhiteCount = p1.historyColors.filter(c => c === 'W').length;
+                    let p2WhiteCount = p2.historyColors.filter(c => c === 'W').length;
+
+                    let whitePlayer = p1;
+                    let blackPlayer = p2;
+
+                    if (p1WhiteCount > p2WhiteCount) {
+                        whitePlayer = p2; blackPlayer = p1;
+                    }
+
+                    if (p1.id === -1 || p2.id === -1) {
+                        whitePlayer = p1.id === -1 ? p2 : p1;
+                        blackPlayer = { id: -1, name: "BYE (Miễn đấu)" };
+                    }
+
+                    pairings.push({ white: whitePlayer.id, black: blackPlayer.id });
+                    pairedIds.add(p1.id);
+                    pairedIds.add(p2.id);
+                    foundOpponent = true;
+                    break;
+                }
+            }
+
+            if (!foundOpponent) {
+                for (let j = i + 1; j < pool.length; j++) {
+                    let p2 = pool[j];
+                    if (!pairedIds.has(p2.id)) {
+                        pairings.push({ white: p1.id, black: p2.id });
+                        pairedIds.add(p1.id); pairedIds.add(p2.id);
+                        break;
+                    }
+                }
+            }
+        }
+
+        tour.currentRound += 1;
+        tour.roundActive = true;
+        tour.currentPairings = pairings;
+
+        tour.currentPairings.forEach(p => {
+            if (p.black.id === -1 || p.black === -1) {
+                p.result = "1-0"; 
+            }
+        });
+
         saveToLocalStorage();
+        loadTournamentData();
+    }
+
+    function renderActivePairings(tour) {
+        const listDiv = document.getElementById('pairingsList');
+        listDiv.innerHTML = "";
+
+        tour.currentPairings.forEach((p, idx) => {
+            let p1Name = tour.players.find(pl => pl.id === p.white).name;
+            let p2Name = tour.players.find(pl => pl.id === p.black).name;
+            let isBye = (p.black === -1);
+
+            let row = document.createElement('div');
+            row.className = "pairing-row";
+            row.innerHTML = `
+                <div class="pairing-player" style="text-align:right;">⚪ ${p1Name}</div>
+                <div class="pairing-vs">VS</div>
+                <div class="pairing-player" style="text-align:left;">⚫ ${p2Name}</div>
+                <div class="pairing-result">
+                    <select id="res_${idx}" ${isBye ? 'disabled' : ''}>
+                        <option value="1-0" ${isBye ? 'selected' : ''}>1 - 0 (Trắng thắng)</option>
+                        <option value="0-1">0 - 1 (Đen thắng)</option>
+                        <option value="0.5-0.5">0.5 - 0.5 (Hòa)</option>
+                    </select>
+                </div>
+            `;
+            listDiv.appendChild(row);
+        });
+    }
+
+    function submitRoundResults() {
+        const tour = getCurrentTournament();
+        if (!tour || !tour.roundActive) return;
+
+        tour.currentPairings.forEach((p, idx) => {
+            const selectEl = document.getElementById(`res_${idx}`);
+            const finalResult = selectEl.value;
+
+            tour.matches.push({
+                round: tour.currentRound,
+                p1: p.white,
+                p2: p.black,
+                result: finalResult
+            });
+
+            let whitePlayer = tour.players.find(pl => pl.id === p.white);
+            let blackPlayer = tour.players.find(pl => pl.id === p.black);
+
+            if (whitePlayer && blackPlayer) {
+                whitePlayer.opponents.push(p.black);
+                whitePlayer.historyColors.push('W');
+                if (blackPlayer.id !== -1) {
+                    blackPlayer.opponents.push(p.white);
+                    blackPlayer.historyColors.push('B');
+                }
+            }
+        });
+
+        tour.roundActive = false;
+        saveToLocalStorage();
+        loadTournamentData();
+    }
+
+    function undoLastRound() {
+        const tour = getCurrentTournament();
+        if (!tour || tour.currentRound === 0) return;
+
+        let msg = tour.roundActive 
+            ? `Bạn có muốn HỦY bốc thăm Vòng ${tour.currentRound} hiện tại không?`
+            : `Bạn có muốn HỦY kết quả Vòng ${tour.currentRound} để tiến hành nhập lại không?`;
+
+        if (confirm(msg)) {
+            if (tour.roundActive) {
+                tour.currentRound -= 1;
+                tour.roundActive = false;
+                tour.currentPairings = [];
+                if (tour.currentRound === 0) {
+                    tour.players = tour.players.filter(p => p.id !== -1);
+                }
+            } else {
+                const targetRound = tour.currentRound;
+                let lastMatches = tour.matches.filter(m => m.round === targetRound);
+                tour.currentPairings = lastMatches.map(m => ({ white: m.p1, black: m.p2 }));
+                tour.matches = tour.matches.filter(m => m.round !== targetRound);
+
+                tour.players.forEach(p => {
+                    let playedInLastRound = lastMatches.some(m => m.p1 === p.id || m.p2 === p.id);
+                    if (playedInLastRound) {
+                        p.opponents.pop();
+                        p.historyColors.pop();
+                    }
+                });
+                tour.roundActive = true; 
+            }
+
+            saveToLocalStorage();
+            loadTournamentData();
+        }
     }
 
     function calculateStandings() {
         const tour = getCurrentTournament();
         const tbody = document.querySelector("#rankTable tbody");
         tbody.innerHTML = "";
-
         if (!tour || tour.players.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">Chưa có dữ liệu xếp hạng.</td></tr>`;
             return;
         }
 
         tour.players.forEach(p => {
-            p.points = 0; p.wins = 0; p.buchholz = 0; p.sonneborn = 0; p.opponents = [];
+            p.points = 0; p.wins = 0; p.buchholz = 0; p.sonneborn = 0; p.calcOpponents = [];
         });
 
         tour.matches.forEach(m => {
@@ -457,42 +843,47 @@
 
             if (m.result === "1-0") {
                 p1.points += 1; p1.wins += 1;
-                p1.opponents.push({ oppId: m.p2, score: 1 });
-                p2.opponents.push({ oppId: m.p1, score: 0 });
+                p1.calcOpponents.push({ oppId: m.p2, score: 1 });
+                p2.calcOpponents.push({ oppId: m.p1, score: 0 });
             } else if (m.result === "0-1") {
                 p2.points += 1; p2.wins += 1;
-                p1.opponents.push({ oppId: m.p2, score: 0 });
-                p2.opponents.push({ oppId: m.p1, score: 1 });
+                p1.calcOpponents.push({ oppId: m.p2, score: 0 });
+                p2.calcOpponents.push({ oppId: m.p1, score: 1 });
             } else if (m.result === "0.5-0.5") {
                 p1.points += 0.5; p2.points += 0.5;
-                p1.opponents.push({ oppId: m.p2, score: 0.5 });
-                p2.opponents.push({ oppId: m.p1, score: 0.5 });
+                p1.calcOpponents.push({ oppId: m.p2, score: 0.5 });
+                p2.calcOpponents.push({ oppId: m.p1, score: 0.5 });
             }
         });
 
         tour.players.forEach(p => {
-            p.opponents.forEach(relation => {
-                let opponent = tour.players.find(o => o.id === relation.oppId);
+            p.calcOpponents.forEach(rel => {
+                let opponent = tour.players.find(o => o.id === rel.oppId);
                 if (!opponent) return;
-                
+
                 p.buchholz += opponent.points;
 
-                if (relation.score === 1) {
+                if (rel.score === 1) {
                     p.sonneborn += opponent.points;
-                } else if (relation.score === 0.5) {
+                } else if (rel.score === 0.5) {
                     p.sonneborn += (opponent.points * 0.5);
                 }
             });
         });
 
-        let rankedPlayers = [...tour.players];
-        rankedPlayers.sort((a, b) => {
+        let displayPlayers = tour.players.filter(p => p.id !== -1);
+
+        displayPlayers.sort((a, b) => {
+            if (a.isDropped !== b.isDropped) {
+                return a.isDropped ? 1 : -1; 
+            }
+
             if (b.points !== a.points) return b.points - a.points;
 
-            let directMatch = a.opponents.filter(o => o.oppId === b.id);
-            if (directMatch.length > 0) {
-                let scoreA = directMatch.reduce((sum, item) => sum + item.score, 0);
-                let scoreB = directMatch.length * 1 - scoreA;
+            let direct = a.calcOpponents.filter(o => o.oppId === b.id);
+            if (direct.length > 0) {
+                let scoreA = direct.reduce((sum, item) => sum + item.score, 0);
+                let scoreB = direct.length * 1 - scoreA;
                 if (scoreA !== scoreB) return scoreB - scoreA;
             }
 
@@ -501,41 +892,52 @@
             return b.sonneborn - a.sonneborn;
         });
 
-        rankedPlayers.forEach((p, index) => {
-            let row = `<tr>
+        displayPlayers.forEach((p, index) => {
+            let rowClass = p.isDropped ? "dropped-row" : "";
+            let nameDisplay = p.isDropped ? `<s>${p.name}</s> <span class="dropped-text">(Đã bỏ cuộc)</span>` : p.name;
+            let btnText = p.isDropped ? "Khôi phục" : "Loại khỏi giải";
+            let btnClass = p.isDropped ? "btn-success" : "btn-danger";
+
+            let hoverActionHtml = "";
+            if (tour.currentRound > 0) {
+                hoverActionHtml = `
+                    <div class="hover-action-container">
+                        <button class="${btnClass} btn-action-inline" onclick="toggleDropPlayer(${p.id})">${btnText}</button>
+                    </div>
+                `;
+            }
+
+            tbody.innerHTML += `<tr class="${rowClass}">
                 <td><b>${index + 1}</b></td>
-                <td>${p.name}</td>
+                <td class="player-name-cell">
+                    <span>${nameDisplay}</span>
+                    ${hoverActionHtml}
+                </td>
                 <td style="color:#27ae60; font-weight:bold;">${p.points}</td>
                 <td>${p.buchholz}</td>
                 <td>${p.wins}</td>
                 <td>${p.sonneborn}</td>
             </tr>`;
-            tbody.innerHTML += row;
         });
     }
 
     function saveToLocalStorage() {
-        localStorage.setItem('chess_multi_tournaments', JSON.stringify(tournaments));
-        localStorage.setItem('chess_current_tournament_id', currentTournamentId);
-        
+        localStorage.setItem('swiss_chess_tournaments', JSON.stringify(tournaments));
+        localStorage.setItem('swiss_chess_current_id', currentTournamentId);
         const badge = document.getElementById('storageStatus');
-        badge.innerText = "⏳ Đang lưu...";
-        badge.style.backgroundColor = "#e67e22";
+        badge.innerText = "⏳ Đang lưu..."; badge.style.backgroundColor = "#e67e22";
         setTimeout(() => {
-            badge.innerText = "✓ Đã lưu tự động";
-            badge.style.backgroundColor = "#27ae60";
+            badge.innerText = "✓ Đã lưu tự động"; badge.style.backgroundColor = "#27ae60";
         }, 400);
     }
 
     window.onload = function() {
-        const localTournaments = localStorage.getItem('chess_multi_tournaments');
-        const localCurrentId = localStorage.getItem('chess_current_tournament_id');
-
+        const localTournaments = localStorage.getItem('swiss_chess_tournaments');
+        const localCurrentId = localStorage.getItem('swiss_chess_current_id');
         if (localTournaments) {
             tournaments = JSON.parse(localTournaments);
             currentTournamentId = localCurrentId;
         }
-
         renderTournamentSelector();
         loadTournamentData();
     };
