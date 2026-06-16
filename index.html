@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Đa Giải Đấu Cờ Vua - Hệ Swiss & Xuất Excel</title>
+    <title>Hệ Thống Đa Giải Đấu Cờ Vua - Hệ Swiss & Xếp Hạng Chuẩn Quốc Tế</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #fff;
             padding: 25px;
@@ -109,13 +109,22 @@
             flex-wrap: wrap;
             gap: 15px;
         }
-        .table-header-wrapper h3 {
-            margin: 0;
+        .table-header-title {
             flex: 1;
             text-align: left;
         }
+        .table-header-title h3 {
+            margin: 0;
+            text-align: left;
+        }
+        .round-indicator {
+            font-size: 0.9em;
+            color: #4b5563;
+            font-weight: bold;
+            margin-top: 3px;
+        }
         .btn-excel {
-            background-color: #1f7347; /* Xanh lá đặc trưng của Excel */
+            background-color: #1f7347; 
             color: white;
             width: auto;
             padding: 8px 16px;
@@ -126,9 +135,7 @@
             gap: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .btn-excel:hover {
-            background-color: #165233;
-        }
+        .btn-excel:hover { background-color: #165233; }
 
         table {
             width: 100%;
@@ -144,6 +151,50 @@
         tr:nth-child(even) { background-color: #f8fafc; }
         tr:hover { background-color: #f1f5f9; }
         
+        /* HIỆU ỨNG RÊ CHUỘT (TOOLTIP) CHO Ô VÁN THẮNG */
+        .win-cell-tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            height: 100%;
+            padding: 5px 0;
+        }
+        .win-cell-tooltip .tooltiptext {
+            visibility: hidden;
+            width: 130px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 6px 0;
+            position: absolute;
+            z-index: 99;
+            bottom: 125%; 
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 12px;
+            font-weight: normal;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .win-cell-tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+        .win-cell-tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
         .pairing-row {
             display: flex;
             align-items: center;
@@ -182,9 +233,7 @@
             font-weight: bold;
             font-size: 0.95em;
         }
-        .history-round-body {
-            padding: 5px 10px;
-        }
+        .history-round-body { padding: 5px 10px; }
         .match-item { 
             padding: 6px 0; 
             border-bottom: 1px dashed #e2e8f0; 
@@ -277,7 +326,7 @@
         <h3>Quản Lý Danh Sách Giải Đấu</h3>
         <div class="tournament-controls">
             <div>
-                <label style="font-weight: bold;">Tạo giải đấu mới (Ấn Enter):</label>
+                <label style="font-weight: bold;">Tạo giải đấu mới:</label>
                 <input type="text" id="newTournamentName" placeholder="Ví dụ: Giải Swiss Hè 2026..." onkeydown="handleTournamentEnter(event)" />
                 <button class="btn-success" onclick="createNewTournament()">Khởi Tạo Giải Đấu</button>
             </div>
@@ -295,7 +344,7 @@
         <div class="flex-container">
             <div class="panel" id="registrationPanel">
                 <h3>1. Giai Đoạn: Đăng Ký Kỳ Thủ</h3>
-                <label style="font-weight: bold;">Nhập tên (Ấn Enter):</label>
+                <label style="font-weight: bold;">Nhập tên:</label>
                 <input type="text" id="playerName" placeholder="Nhập tên kỳ thủ..." onkeydown="handlePlayerEnter(event)">
                 <button onclick="addPlayer()">Thêm Kỳ Thủ</button>
                 
@@ -325,7 +374,10 @@
         </div>
 
         <div class="table-header-wrapper">
-            <h3>Bảng Xếp Hạng Hiện Tại</h3>
+            <div class="table-header-title">
+                <h3>Bảng Xếp Hạng Hiện Tại</h3>
+                <div class="round-indicator" id="currentRoundIndicator">Giải đấu chưa bắt đầu</div>
+            </div>
             <button class="btn-excel" onclick="exportTableToExcel()">📊 Xuất File Excel Cập Nhật</button>
         </div>
         
@@ -336,12 +388,13 @@
                     <th>Tên Kỳ Thủ</th>
                     <th>Điểm</th>
                     <th>Buchholz</th>
+                    <th>Buchholz-1</th>
                     <th>Ván Thắng</th>
                     <th>Sonneborn</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td colspan="6" style="text-align:center">Chưa có dữ liệu.</td></tr>
+                <tr><td colspan="7" style="text-align:center">Chưa có dữ liệu.</td></tr>
             </tbody>
         </table>
     </div>
@@ -358,56 +411,78 @@
         if (event.key === "Enter") { event.preventDefault(); createNewTournament(); }
     }
 
-    // --- HÀM XUẤT EXCEL CHUYÊN NGHIỆP ---
+    // --- HÀM XUẤT EXCEL CHUYÊN NGHIỆP TÍCH HỢP TRẠNG THÁI TIÊU ĐỀ LỚN ---
     function exportTableToExcel() {
         const tour = getCurrentTournament();
         if (!tour || tour.players.length === 0) return alert("Không có dữ liệu xếp hạng để xuất!");
 
-        // Lấy dữ liệu thuần từ bảng hiển thị hiện tại để tránh dính mã HTML của nút bấm ẩn
         const table = document.getElementById("rankTable");
         const rows = table.querySelectorAll("tbody tr");
         
-        // Chuẩn bị mảng dữ liệu với hàng tiêu đề ban đầu
+        // Lấy chính xác chuỗi trạng thái hiện tại trên giao diện web
+        const rawStatusText = document.getElementById("currentRoundIndicator").innerText.toUpperCase();
+        
+        // Cấu trúc dữ liệu: Dòng 1 làm tiêu đề lớn, Dòng 2 trống, Dòng 3 là tiêu đề bảng dữ liệu
         let excelData = [
-            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Buchholz", "Ván Thắng", "Sonneborn"]
+            [rawStatusText], // Dòng 1: In chữ trạng thái giải đấu
+            [],              // Dòng 2: Để trống cho thoáng
+            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] // Dòng 3
         ];
 
         rows.forEach(tr => {
             const cells = tr.querySelectorAll("td");
-            if(cells.length < 6) return; // Bỏ qua hàng thông báo trống
+            if(cells.length < 7) return; 
 
             let rank = cells[0].innerText;
-            // Làm sạch văn bản: Chỉ lấy tên kỳ thủ, loại bỏ các ký hiệu chữ (Đã bỏ cuộc) thừa thãi nếu có
             let rawName = cells[1].querySelector("span") ? cells[1].querySelector("span").innerText : cells[1].innerText;
             let cleanName = rawName.replace("(Đã bỏ cuộc)", "").trim();
             
             let points = parseFloat(cells[2].innerText);
             let buchholz = parseFloat(cells[3].innerText);
-            let wins = parseInt(cells[4].innerText);
-            let sonneborn = parseFloat(cells[5].innerText);
+            let buchholzMinus1 = parseFloat(cells[4].innerText);
+            
+            let winTooltipEl = cells[5].querySelector(".win-cell-tooltip");
+            let wins = winTooltipEl ? parseInt(winTooltipEl.childNodes[0].textContent.trim()) : 0;
+            let rawColors = winTooltipEl ? winTooltipEl.querySelector(".tooltiptext").innerText : "";
+            let colorHistory = rawColors.replace("Quân đi:", "").trim();
 
-            excelData.push([rank, cleanName, points, buchholz, wins, sonneborn]);
+            let sonneborn = parseFloat(cells[6].innerText);
+
+            excelData.push([rank, cleanName, points, buchholz, buchholzMinus1, wins, colorHistory, sonneborn]);
         });
 
-        // Tạo cấu trúc Workbook Excel bằng SheetJS
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Bảng Xếp Hạng");
 
-        // Định dạng độ rộng cột tự động để khi in ấn/mở file không bị khuất chữ
+        // GỘP Ô dòng 1 (Từ cột A đến H) để hiển thị tiêu đề lớn nguyên vẹn
+        worksheet['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } } 
+        ];
+
+        // ĐỊNH DẠNG FONT CHỮ LỚN NHẤT CHO DÒNG 1 (Áp dụng cấu trúc ô)
+        if (worksheet['A1']) {
+            worksheet['A1'].s = {
+                font: { name: "Segoe UI", sz: 18, bold: true, color: { rgb: "1F4E78" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+        }
+
+        // Tự động căn chỉnh độ rộng các cột
         const max_columns_width = [
             { wch: 8 },  // Hạng
             { wch: 26 }, // Tên Kỳ Thủ
             { wch: 10 }, // Điểm
             { wch: 12 }, // Buchholz
+            { wch: 14 }, // Buchholz-1
             { wch: 12 }, // Ván Thắng
+            { wch: 15 }, // Quân Lịch Sử
             { wch: 12 }  // Sonneborn
         ];
         worksheet['!cols'] = max_columns_width;
 
-        // Tiến hành tải xuống máy
         let cleanTourName = tour.name.replace(/[^a-aA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư\s]/g, '_');
-        let filename = `Bang_Xep_Hang_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`;
+        let filename = `Bang_Xep_Hang_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`;
         XLSX.writeFile(workbook, filename);
     }
 
@@ -486,17 +561,28 @@
         const regPanel = document.getElementById('registrationPanel');
         const btnPairing = document.getElementById('btnPairing');
         const btnUndo = document.getElementById('btnUndo');
+        const roundIndicator = document.getElementById('currentRoundIndicator');
 
         if (tour.currentRound === 0) {
             roundStatus.innerText = "Giải đấu chưa bắt đầu. Hãy thêm kỳ thủ!";
             regPanel.classList.remove('hidden-section');
             btnPairing.innerText = "Khởi Động Giải & Bốc Thăm Vòng 1";
             btnUndo.classList.add('hidden-section'); 
+            roundIndicator.innerText = "Giải đấu chưa bắt đầu";
+            roundIndicator.style.color = "#6b7280";
         } else {
             roundStatus.innerText = `Vòng ${tour.currentRound} ${tour.roundActive ? 'đang bốc thăm nhập điểm' : 'đã kết thúc hoàn toàn'}`;
             regPanel.classList.add('hidden-section'); 
             btnPairing.innerText = `Bốc Thăm Vòng ${tour.currentRound + 1}`;
             btnUndo.classList.remove('hidden-section'); 
+            
+            if (tour.roundActive) {
+                roundIndicator.innerText = `Giải đấu đang tiến hành nhập điểm vòng ${tour.currentRound}`;
+                roundIndicator.style.color = "#e67e22";
+            } else {
+                roundIndicator.innerText = `Giải đấu đã hoàn thành vòng ${tour.currentRound}`;
+                roundIndicator.style.color = "#27ae60";
+            }
         }
 
         btnPairing.disabled = tour.roundActive;
@@ -568,7 +654,7 @@
             name: name,
             opponents: [], 
             historyColors: [], 
-            points: 0, buchholz: 0, wins: 0, sonneborn: 0,
+            points: 0, buchholz: 0, buchholzMinus1: 0, wins: 0, sonneborn: 0,
             isDropped: false 
         });
 
@@ -656,7 +742,7 @@
             tour.players.push({
                 id: -1, name: "BYE (Miễn đấu)",
                 opponents: [], historyColors: [],
-                points: 0, buchholz: 0, wins: 0, sonneborn: 0,
+                points: 0, buchholz: 0, buchholzMinus1: 0, wins: 0, sonneborn: 0,
                 isDropped: false
             });
         }
@@ -773,10 +859,10 @@
 
             if (whitePlayer && blackPlayer) {
                 whitePlayer.opponents.push(p.black);
-                whitePlayer.historyColors.push('W');
+                whitePlayer.historyColors.push('W'); 
                 if (blackPlayer.id !== -1) {
                     blackPlayer.opponents.push(p.white);
-                    blackPlayer.historyColors.push('B');
+                    blackPlayer.historyColors.push('B'); 
                 }
             }
         });
@@ -812,7 +898,7 @@
                     let playedInLastRound = lastMatches.some(m => m.p1 === p.id || m.p2 === p.id);
                     if (playedInLastRound) {
                         p.opponents.pop();
-                        p.historyColors.pop();
+                        p.historyColors.pop(); 
                     }
                 });
                 tour.roundActive = true; 
@@ -828,12 +914,12 @@
         const tbody = document.querySelector("#rankTable tbody");
         tbody.innerHTML = "";
         if (!tour || tour.players.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center">Chưa có dữ liệu xếp hạng.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center">Chưa có dữ liệu xếp hạng.</td></tr>`;
             return;
         }
 
         tour.players.forEach(p => {
-            p.points = 0; p.wins = 0; p.buchholz = 0; p.sonneborn = 0; p.calcOpponents = [];
+            p.points = 0; p.wins = 0; p.buchholz = 0; p.buchholzMinus1 = 0; p.sonneborn = 0; p.calcOpponents = [];
         });
 
         tour.matches.forEach(m => {
@@ -857,11 +943,14 @@
         });
 
         tour.players.forEach(p => {
+            let opponentScores = [];
+
             p.calcOpponents.forEach(rel => {
                 let opponent = tour.players.find(o => o.id === rel.oppId);
                 if (!opponent) return;
 
                 p.buchholz += opponent.points;
+                opponentScores.push(opponent.points);
 
                 if (rel.score === 1) {
                     p.sonneborn += opponent.points;
@@ -869,6 +958,14 @@
                     p.sonneborn += (opponent.points * 0.5);
                 }
             });
+
+            if (opponentScores.length > 0) {
+                let minScore = Math.min(...opponentScores);
+                let totalScore = opponentScores.reduce((sum, current) => sum + current, 0);
+                p.buchholzMinus1 = totalScore - minScore;
+            } else {
+                p.buchholzMinus1 = 0;
+            }
         });
 
         let displayPlayers = tour.players.filter(p => p.id !== -1);
@@ -888,7 +985,11 @@
             }
 
             if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
+
+            if (b.buchholzMinus1 !== a.buchholzMinus1) return b.buchholzMinus1 - a.buchholzMinus1;
+
             if (b.wins !== a.wins) return b.wins - a.wins;
+
             return b.sonneborn - a.sonneborn;
         });
 
@@ -907,6 +1008,10 @@
                 `;
             }
 
+            let textColors = (p.historyColors && p.historyColors.length > 0) 
+                ? p.historyColors.map(c => c === 'W' ? '⚪' : '⚫').join('') 
+                : 'Chưa đấu';
+
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><b>${index + 1}</b></td>
                 <td class="player-name-cell">
@@ -915,7 +1020,13 @@
                 </td>
                 <td style="color:#27ae60; font-weight:bold;">${p.points}</td>
                 <td>${p.buchholz}</td>
-                <td>${p.wins}</td>
+                <td>${p.buchholzMinus1}</td> 
+                <td>
+                    <div class="win-cell-tooltip">
+                        ${p.wins}
+                        <span class="tooltiptext">Quân đi: ${textColors}</span>
+                    </div>
+                </td>
                 <td>${p.sonneborn}</td>
             </tr>`;
         });
