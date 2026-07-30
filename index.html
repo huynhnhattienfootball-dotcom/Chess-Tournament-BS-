@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Giải Đấu Swiss - Kiểm Soát Màu Quân Tuyệt Đối</title>
+    <title>Hệ Thống Giải Đấu Swiss - Chuẩn Luật Đối Kháng FIDE</title>
     <!-- THƯ VIỆN ĐỂ CHUYỂN ĐỔI TABLE THÀNH FILE EXCEL -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -151,7 +151,7 @@
         tr:nth-child(even) { background-color: #f8fafc; }
         tr:hover { background-color: #f1f5f9; }
         
-        /* HOVER TỰ ĐỘNG HIỆN ẨN TOOLTIP */
+        /* HOVER TOOLTIP */
         .win-cell-tooltip, .points-cell-tooltip {
             position: relative;
             display: inline-block;
@@ -163,8 +163,8 @@
         }
         .win-cell-tooltip .tooltiptext, .points-cell-tooltip .tooltiptext {
             visibility: hidden;
-            min-width: 170px;
-            max-width: 260px;
+            min-width: 200px;
+            max-width: 300px;
             background-color: #1e293b;
             color: #fff;
             text-align: left;
@@ -464,13 +464,6 @@
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
-        
-        for (let cellRef in worksheet) {
-            if (cellRef[0] === '!') continue;
-            if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
-            worksheet[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
-        }
-
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Lịch Thi Đấu");
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
@@ -491,7 +484,7 @@
         let excelData = [
             [rawStatusText], 
             [],              
-            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Đối Đầu Đồng Điểm", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
+            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Đối Đầu Trực Tiếp (Cùng Điểm)", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
         ];
 
         rows.forEach(tr => {
@@ -505,7 +498,7 @@
             let pointsTooltipEl = cells[2].querySelector(".points-cell-tooltip");
             let points = pointsTooltipEl ? parseFloat(pointsTooltipEl.childNodes[0].textContent.trim()) : parseFloat(cells[2].innerText);
             let rawHeadToHead = pointsTooltipEl ? pointsTooltipEl.querySelector(".tooltiptext").innerText : "";
-            let headToHeadText = rawHeadToHead.replace("ĐỐI ĐẦU ĐỒNG ĐIỂM:", "").replace(/\n/g, " | ").trim();
+            let headToHeadText = rawHeadToHead.replace(/\n/g, " | ").trim();
 
             let buchholz = parseFloat(cells[3].innerText);
             let buchholzMinus1 = parseFloat(cells[4].innerText);
@@ -520,17 +513,10 @@
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
-        
-        for (let cellRef in worksheet) {
-            if (cellRef[0] === '!') continue;
-            if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
-            worksheet[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
-        }
-
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Bảng Xếp Hạng");
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
-        worksheet['!cols'] = [{wch: 8}, {wch: 26}, {wch: 10}, {wch: 35}, {wch: 12}, {wch: 14}, {wch: 12}, {wch: 18}, {wch: 12}];
+        worksheet['!cols'] = [{wch: 8}, {wch: 26}, {wch: 10}, {wch: 40}, {wch: 12}, {wch: 14}, {wch: 12}, {wch: 18}, {wch: 12}];
         
         let cleanTourName = tour.name.replace(/[^a-aA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư\s]/g, '_');
         XLSX.writeFile(workbook, `Bang_Xep_Hang_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`);
@@ -1004,10 +990,12 @@
             return;
         }
 
+        // Bước 1: Khởi tạo lại các thông số
         tour.players.forEach(p => {
             p.points = 0; p.wins = 0; p.buchholz = 0; p.buchholzMinus1 = 0; p.sonneborn = 0; p.calcOpponents = [];
         });
 
+        // Bước 2: Tính tổng điểm và lưu lịch sử đối đầu chi tiết
         tour.matches.forEach(m => {
             let p1 = tour.players.find(p => p.id === m.p1);
             let p2 = tour.players.find(p => p.id === m.p2);
@@ -1028,6 +1016,7 @@
             }
         });
 
+        // Bước 3: Tính các hệ số phụ chuẩn (Buchholz, Sonneborn)
         tour.players.forEach(p => {
             let opponentScores = [];
             p.calcOpponents.forEach(rel => {
@@ -1053,23 +1042,45 @@
             }
         });
 
+        // Bước 4: TÍNH ĐIỂM ĐỐI KHÁNG TRỰC TIẾP TRONG NHÓM ĐỒNG ĐIỂM (DIRECT ENCOUNTER - FIDE RULE)
         let displayPlayers = tour.players.filter(p => p.id !== -1);
 
+        displayPlayers.forEach(p => {
+            let samePointGroup = displayPlayers.filter(o => o.points === p.points);
+            p.directEncounterPoints = 0;
+            p.samePointMatches = [];
+
+            if (samePointGroup.length > 1) {
+                p.calcOpponents.forEach(rel => {
+                    let oppInGroup = samePointGroup.find(o => o.id === rel.oppId);
+                    if (oppInGroup) {
+                        p.directEncounterPoints += rel.score;
+                        p.samePointMatches.push({
+                            oppName: oppInGroup.name,
+                            score: rel.score
+                        });
+                    }
+                });
+            }
+        });
+
+        // Bước 5: Sắp xếp xếp hạng ưu tiên ĐỐI KHÁNG TRỰC TIẾP trước Buchholz
         displayPlayers.sort((a, b) => {
             if (a.isDropped !== b.isDropped) return a.isDropped ? 1 : -1; 
             if (b.points !== a.points) return b.points - a.points;
-            let direct = a.calcOpponents.filter(o => o.oppId === b.id);
-            if (direct.length > 0) {
-                let scoreA = direct.reduce((sum, item) => sum + item.score, 0);
-                let scoreB = direct.length * 1 - scoreA;
-                if (scoreA !== scoreB) return scoreB - scoreA;
+            
+            // TIÊU CHÍ PHÂN ĐỊNH: ĐỐI KHÁNG TRỰC TIẾP (DIRECT ENCOUNTER)
+            if (b.directEncounterPoints !== a.directEncounterPoints) {
+                return b.directEncounterPoints - a.directEncounterPoints;
             }
+
             if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
             if (b.buchholzMinus1 !== a.buchholzMinus1) return b.buchholzMinus1 - a.buchholzMinus1;
             if (b.wins !== a.wins) return b.wins - a.wins;
             return b.sonneborn - a.sonneborn;
         });
 
+        // Bước 6: Hiển thị bảng xếp hạng
         displayPlayers.forEach((p, index) => {
             let rowClass = p.isDropped ? "dropped-row" : "";
             let nameDisplay = p.isDropped ? `<s>${p.name}</s> <span class="dropped-text">(Đã bỏ cuộc)</span>` : p.name;
@@ -1089,21 +1100,21 @@
                 ? p.historyColors.map(c => c === 'W' ? '⚪' : '⚫').join('') 
                 : 'Chưa đấu';
 
-            // CẢI TIẾN CỐT LÕI: CHỈ LỌC RA ĐỐI THỦ CÓ ĐIỂM SỐ BẰNG BẰNG (p.points === oppObj.points)
-            let samePointsHeadToHeadLines = [];
-            if (p.calcOpponents && p.calcOpponents.length > 0) {
-                p.calcOpponents.forEach(rel => {
-                    let oppObj = tour.players.find(o => o.id === rel.oppId);
-                    if (oppObj && oppObj.points === p.points) {
-                        let resStr = rel.score === 1 ? "Thắng 1-0" : (rel.score === 0.5 ? "Hòa 0.5-0.5" : "Thua 0-1");
-                        samePointsHeadToHeadLines.push(`• vs ${oppObj.name}: ${resStr}`);
-                    }
+            // Dựng thông tin Tooltip cho Ô Điểm
+            let headToHeadLines = [];
+            if (p.samePointMatches && p.samePointMatches.length > 0) {
+                p.samePointMatches.forEach(m => {
+                    let resStr = m.score === 1 ? "Thắng 1-0" : (m.score === 0.5 ? "Hòa 0.5-0.5" : "Thua 0-1");
+                    headToHeadLines.push(`• vs ${m.oppName}: ${resStr}`);
                 });
             }
 
-            let headToHeadTooltipText = samePointsHeadToHeadLines.length > 0 
-                ? "ĐỐI ĐẦU ĐỒNG ĐIỂM:\n" + samePointsHeadToHeadLines.join("\n") 
-                : "Không có đối thủ cùng điểm";
+            let headToHeadTooltipText = "";
+            if (headToHeadLines.length > 0) {
+                headToHeadTooltipText = `ĐỐI KHÁNG TRỰC TIẾP (Tổng điểm: ${p.directEncounterPoints}):\n` + headToHeadLines.join("\n");
+            } else {
+                headToHeadTooltipText = "Chưa đối đầu với ai trong nhóm đồng điểm";
+            }
 
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><b>${index + 1}</b></td>
