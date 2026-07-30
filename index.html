@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Giải Đấu Swiss - Chuẩn Luật Đối Kháng FIDE</title>
+    <title>Hệ Thống Giải Đấu Swiss - Chuẩn Quy Tắc Đối Đầu Trực Tiếp</title>
     <!-- THƯ VIỆN ĐỂ CHUYỂN ĐỔI TABLE THÀNH FILE EXCEL -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -151,7 +151,7 @@
         tr:nth-child(even) { background-color: #f8fafc; }
         tr:hover { background-color: #f1f5f9; }
         
-        /* HOVER TOOLTIP */
+        /* TOOLTIP HIỂN THỊ THÔNG TIN KHI HOVER */
         .win-cell-tooltip, .points-cell-tooltip {
             position: relative;
             display: inline-block;
@@ -163,8 +163,8 @@
         }
         .win-cell-tooltip .tooltiptext, .points-cell-tooltip .tooltiptext {
             visibility: hidden;
-            min-width: 200px;
-            max-width: 300px;
+            min-width: 220px;
+            max-width: 320px;
             background-color: #1e293b;
             color: #fff;
             text-align: left;
@@ -469,8 +469,8 @@
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
         worksheet['!cols'] = [{wch: 10}, {wch: 30}, {wch: 10}, {wch: 30}];
         
-        let cleanTourName = tour.name.replace(/[^a-aA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư\s]/g, '_');
-        XLSX.writeFile(workbook, `Boc_Tham_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`);
+        let cleanTourName = tour.name.replace(/[^a-zA-Z0-9]/g, '_');
+        XLSX.writeFile(workbook, `Boc_Tham_Vong_${tour.currentRound}_${cleanTourName}.xlsx`);
     }
 
     function exportTableToExcel() {
@@ -484,7 +484,7 @@
         let excelData = [
             [rawStatusText], 
             [],              
-            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Đối Đầu Trực Tiếp (Cùng Điểm)", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
+            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Trạng Thái Đối Đầu", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
         ];
 
         rows.forEach(tr => {
@@ -516,10 +516,10 @@
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Bảng Xếp Hạng");
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
-        worksheet['!cols'] = [{wch: 8}, {wch: 26}, {wch: 10}, {wch: 40}, {wch: 12}, {wch: 14}, {wch: 12}, {wch: 18}, {wch: 12}];
+        worksheet['!cols'] = [{wch: 8}, {wch: 26}, {wch: 10}, {wch: 45}, {wch: 12}, {wch: 14}, {wch: 12}, {wch: 18}, {wch: 12}];
         
-        let cleanTourName = tour.name.replace(/[^a-aA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư\s]/g, '_');
-        XLSX.writeFile(workbook, `Bang_Xep_Hang_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`);
+        let cleanTourName = tour.name.replace(/[^a-zA-Z0-9]/g, '_');
+        XLSX.writeFile(workbook, `Bang_Xep_Hang_Vong_${tour.currentRound}_${cleanTourName}.xlsx`);
     }
 
     function createNewTournament() {
@@ -990,12 +990,12 @@
             return;
         }
 
-        // Bước 1: Khởi tạo lại các thông số
+        // 1. Reset chỉ số cơ bản
         tour.players.forEach(p => {
             p.points = 0; p.wins = 0; p.buchholz = 0; p.buchholzMinus1 = 0; p.sonneborn = 0; p.calcOpponents = [];
         });
 
-        // Bước 2: Tính tổng điểm và lưu lịch sử đối đầu chi tiết
+        // 2. Tính điểm & lưu lịch sử trận đấu
         tour.matches.forEach(m => {
             let p1 = tour.players.find(p => p.id === m.p1);
             let p2 = tour.players.find(p => p.id === m.p2);
@@ -1016,7 +1016,7 @@
             }
         });
 
-        // Bước 3: Tính các hệ số phụ chuẩn (Buchholz, Sonneborn)
+        // 3. Tính Buchholz, Buchholz-1 & Sonneborn
         tour.players.forEach(p => {
             let opponentScores = [];
             p.calcOpponents.forEach(rel => {
@@ -1042,45 +1042,90 @@
             }
         });
 
-        // Bước 4: TÍNH ĐIỂM ĐỐI KHÁNG TRỰC TIẾP TRONG NHÓM ĐỒNG ĐIỂM (DIRECT ENCOUNTER - FIDE RULE)
+        // 4. LỌC VÀ NHÓM ĐỒNG ĐIỂM ĐỂ KIỂM TRA ĐỐI ĐẦU TRỰC TIẾP CHUẨN QUỐC TẾ
         let displayPlayers = tour.players.filter(p => p.id !== -1);
 
+        // Nhóm các kỳ thủ theo điểm số
+        let pointGroups = {};
         displayPlayers.forEach(p => {
-            let samePointGroup = displayPlayers.filter(o => o.points === p.points);
-            p.directEncounterPoints = 0;
-            p.samePointMatches = [];
+            if (!pointGroups[p.points]) pointGroups[p.points] = [];
+            pointGroups[p.points].push(p);
+        });
 
-            if (samePointGroup.length > 1) {
-                p.calcOpponents.forEach(rel => {
-                    let oppInGroup = samePointGroup.find(o => o.id === rel.oppId);
-                    if (oppInGroup) {
-                        p.directEncounterPoints += rel.score;
-                        p.samePointMatches.push({
-                            oppName: oppInGroup.name,
-                            score: rel.score
-                        });
+        // Tính toán thông tin Đối Đầu Trực Tiếp cho từng kỳ thủ
+        displayPlayers.forEach(p => {
+            let group = pointGroups[p.points];
+            p.headToHeadValid = false;
+            p.headToHeadScore = 0;
+            p.headToHeadInfoText = "";
+
+            if (group.length > 1) {
+                // Kiểm tra xem TẤT CẢ các cặp trong nhóm này đã đấu với nhau chưa (Vòng tròn đầy đủ)
+                let isFullRoundRobin = true;
+                for (let i = 0; i < group.length; i++) {
+                    for (let j = i + 1; j < group.length; j++) {
+                        let pA = group[i];
+                        let pB = group[j];
+                        let hasPlayed = pA.calcOpponents.some(rel => rel.oppId === pB.id);
+                        if (!hasPlayed) {
+                            isFullRoundRobin = false;
+                            break;
+                        }
                     }
-                });
+                    if (!isFullRoundRobin) break;
+                }
+
+                if (isFullRoundRobin) {
+                    p.headToHeadValid = true;
+                    let innerDetails = [];
+                    group.forEach(opp => {
+                        if (opp.id !== p.id) {
+                            let matchRel = p.calcOpponents.find(rel => rel.oppId === opp.id);
+                            let score = matchRel ? matchRel.score : 0;
+                            p.headToHeadScore += score;
+                            let scoreLabel = score === 1 ? "1-0" : (score === 0.5 ? "0.5-0.5" : "0-1");
+                            innerDetails.push(`• vs ${opp.name}: ${scoreLabel}`);
+                        }
+                    });
+                    p.headToHeadInfoText = `ĐIỂM ĐỐI ĐẦU TRỰC TIẾP (${p.headToHeadScore}đ):\n` + innerDetails.join("\n");
+                } else {
+                    p.headToHeadValid = false;
+                    p.headToHeadInfoText = `⚠️ Có ${group.length} người cùng ${p.points}đ nhưng CHƯA đấu vòng tròn đầy đủ với nhau.\n➔ Hệ số Đối Đầu bị HỦY BỎ. Dùng Buchholz để phân hạng.`;
+                }
+            } else {
+                p.headToHeadValid = false;
+                p.headToHeadInfoText = "Kỳ thủ độc tôn mức điểm này (Không cần xét đối đầu).";
             }
         });
 
-        // Bước 5: Sắp xếp xếp hạng ưu tiên ĐỐI KHÁNG TRỰC TIẾP trước Buchholz
+        // 5. SẮP XẾP BẢNG XẾP HẠNG THEO THỨ TỰ ƯU TIÊN CHUẨN
         displayPlayers.sort((a, b) => {
             if (a.isDropped !== b.isDropped) return a.isDropped ? 1 : -1; 
-            if (b.points !== a.points) return b.points - a.points;
             
-            // TIÊU CHÍ PHÂN ĐỊNH: ĐỐI KHÁNG TRỰC TIẾP (DIRECT ENCOUNTER)
-            if (b.directEncounterPoints !== a.directEncounterPoints) {
-                return b.directEncounterPoints - a.directEncounterPoints;
+            // 1. Điểm số
+            if (b.points !== a.points) return b.points - a.points;
+
+            // 2. Đối Đầu Trực Tiếp (Chỉ áp dụng nếu cả 2 thuộc nhóm ĐÃ đấu vòng tròn với nhau)
+            if (a.headToHeadValid && b.headToHeadValid) {
+                if (b.headToHeadScore !== a.headToHeadScore) {
+                    return b.headToHeadScore - a.headToHeadScore;
+                }
             }
 
+            // 3. Hệ số Buchholz
             if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
+
+            // 4. Hệ số Buchholz-1
             if (b.buchholzMinus1 !== a.buchholzMinus1) return b.buchholzMinus1 - a.buchholzMinus1;
+
+            // 5. Số ván thắng
             if (b.wins !== a.wins) return b.wins - a.wins;
+
+            // 6. Hệ số Sonneborn-Berger
             return b.sonneborn - a.sonneborn;
         });
 
-        // Bước 6: Hiển thị bảng xếp hạng
+        // 6. HIỂN THỊ DỮ LIỆU VÀO BẢNG
         displayPlayers.forEach((p, index) => {
             let rowClass = p.isDropped ? "dropped-row" : "";
             let nameDisplay = p.isDropped ? `<s>${p.name}</s> <span class="dropped-text">(Đã bỏ cuộc)</span>` : p.name;
@@ -1100,29 +1145,13 @@
                 ? p.historyColors.map(c => c === 'W' ? '⚪' : '⚫').join('') 
                 : 'Chưa đấu';
 
-            // Dựng thông tin Tooltip cho Ô Điểm
-            let headToHeadLines = [];
-            if (p.samePointMatches && p.samePointMatches.length > 0) {
-                p.samePointMatches.forEach(m => {
-                    let resStr = m.score === 1 ? "Thắng 1-0" : (m.score === 0.5 ? "Hòa 0.5-0.5" : "Thua 0-1");
-                    headToHeadLines.push(`• vs ${m.oppName}: ${resStr}`);
-                });
-            }
-
-            let headToHeadTooltipText = "";
-            if (headToHeadLines.length > 0) {
-                headToHeadTooltipText = `ĐỐI KHÁNG TRỰC TIẾP (Tổng điểm: ${p.directEncounterPoints}):\n` + headToHeadLines.join("\n");
-            } else {
-                headToHeadTooltipText = "Chưa đối đầu với ai trong nhóm đồng điểm";
-            }
-
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><b>${index + 1}</b></td>
                 <td class="player-name-cell"><span>${nameDisplay}</span>${hoverActionHtml}</td>
                 <td style="color:#27ae60; font-weight:bold;">
                     <div class="points-cell-tooltip">
                         ${p.points}
-                        <span class="tooltiptext">${headToHeadTooltipText}</span>
+                        <span class="tooltiptext">${p.headToHeadInfoText}</span>
                     </div>
                 </td>
                 <td>${p.buchholz}</td>
