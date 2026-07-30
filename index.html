@@ -163,8 +163,8 @@
         }
         .win-cell-tooltip .tooltiptext, .points-cell-tooltip .tooltiptext {
             visibility: hidden;
-            min-width: 160px;
-            max-width: 250px;
+            min-width: 170px;
+            max-width: 260px;
             background-color: #1e293b;
             color: #fff;
             text-align: left;
@@ -198,7 +198,6 @@
             opacity: 1;
         }
 
-        /* ĐỊNH DẠNG CẶP ĐẤU ĐỒNG ĐỀU TRÊN MỘT HÀNG NGANG */
         .pairing-row {
             display: flex;
             align-items: center;
@@ -448,7 +447,6 @@
         if (event.key === "Enter") { event.preventDefault(); createNewTournament(); }
     }
 
-    // --- HÀM XUẤT FILE EXCEL CHO DANH SÁCH BỐC THĂM VÒNG ---
     function exportPairingsToExcel() {
         const tour = getCurrentTournament();
         if (!tour || !tour.roundActive || tour.currentPairings.length === 0) return alert("Không có dữ liệu bốc thăm hiện tại!");
@@ -482,7 +480,6 @@
         XLSX.writeFile(workbook, `Boc_Tham_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`);
     }
 
-    // --- HÀM XUẤT FILE EXCEL BẢNG XẾP HẠNG ---
     function exportTableToExcel() {
         const tour = getCurrentTournament();
         if (!tour || tour.players.length === 0) return alert("Không có dữ liệu xếp hạng để xuất!");
@@ -494,7 +491,7 @@
         let excelData = [
             [rawStatusText], 
             [],              
-            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Lịch Sử Đối Đầu", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
+            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Đối Đầu Đồng Điểm", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
         ];
 
         rows.forEach(tr => {
@@ -508,7 +505,7 @@
             let pointsTooltipEl = cells[2].querySelector(".points-cell-tooltip");
             let points = pointsTooltipEl ? parseFloat(pointsTooltipEl.childNodes[0].textContent.trim()) : parseFloat(cells[2].innerText);
             let rawHeadToHead = pointsTooltipEl ? pointsTooltipEl.querySelector(".tooltiptext").innerText : "";
-            let headToHeadText = rawHeadToHead.replace("LỊCH SỬ ĐỐI ĐẦU:", "").replace(/\n/g, " | ").trim();
+            let headToHeadText = rawHeadToHead.replace("ĐỐI ĐẦU ĐỒNG ĐIỂM:", "").replace(/\n/g, " | ").trim();
 
             let buchholz = parseFloat(cells[3].innerText);
             let buchholzMinus1 = parseFloat(cells[4].innerText);
@@ -851,7 +848,6 @@
                 basePenalty += Math.abs(p1.points - p2.points) * 10;
                 usedIds.add(p2.id);
 
-                // TH A: P1 Trắng - P2 Đen
                 let penaltyA = basePenalty;
                 penaltyA += calculateColorPenalty(p1, "W");
                 penaltyA += calculateColorPenalty(p2, "B");
@@ -860,7 +856,6 @@
                 backtrack(index + 1, currentPairings, currentPenalty + penaltyA, usedIds);
                 currentPairings.pop();
 
-                // TH B: P2 Trắng - P1 Đen
                 let penaltyB = basePenalty;
                 penaltyB += calculateColorPenalty(p1, "B");
                 penaltyB += calculateColorPenalty(p2, "W");
@@ -1090,25 +1085,25 @@
                 `;
             }
 
-            // TOOLTIP 1: MÀU QUÂN LỊCH SỬ
             let textColors = (p.historyColors && p.historyColors.length > 0) 
                 ? p.historyColors.map(c => c === 'W' ? '⚪' : '⚫').join('') 
                 : 'Chưa đấu';
 
-            // TOOLTIP 2: LỊCH SỬ ĐỐI ĐẦU ẨN DƯỚI ĐIỂM SỐ
-            let headToHeadLines = [];
+            // CẢI TIẾN CỐT LÕI: CHỈ LỌC RA ĐỐI THỦ CÓ ĐIỂM SỐ BẰNG BẰNG (p.points === oppObj.points)
+            let samePointsHeadToHeadLines = [];
             if (p.calcOpponents && p.calcOpponents.length > 0) {
                 p.calcOpponents.forEach(rel => {
                     let oppObj = tour.players.find(o => o.id === rel.oppId);
-                    if (oppObj) {
+                    if (oppObj && oppObj.points === p.points) {
                         let resStr = rel.score === 1 ? "Thắng 1-0" : (rel.score === 0.5 ? "Hòa 0.5-0.5" : "Thua 0-1");
-                        headToHeadLines.push(`• vs ${oppObj.name}: ${resStr}`);
+                        samePointsHeadToHeadLines.push(`• vs ${oppObj.name}: ${resStr}`);
                     }
                 });
             }
-            let headToHeadTooltipText = headToHeadLines.length > 0 
-                ? "LỊCH SỬ ĐỐI ĐẦU:\n" + headToHeadLines.join("\n") 
-                : "Chưa đối đầu kỳ thủ nào";
+
+            let headToHeadTooltipText = samePointsHeadToHeadLines.length > 0 
+                ? "ĐỐI ĐẦU ĐỒNG ĐIỂM:\n" + samePointsHeadToHeadLines.join("\n") 
+                : "Không có đối thủ cùng điểm";
 
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><b>${index + 1}</b></td>
