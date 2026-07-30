@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Giải Đấu Swiss - Kiểm Soát Màu Quân Tuyệt Đối</title>
+    <!-- THƯ VIỆN ĐỂ CHUYỂN ĐỔI TABLE THÀNH FILE EXCEL -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
@@ -150,8 +151,8 @@
         tr:nth-child(even) { background-color: #f8fafc; }
         tr:hover { background-color: #f1f5f9; }
         
-        /* HOVER TÊN KỲ THỦ TRÊN BẢNG XẾP HẠNG */
-        .win-cell-tooltip {
+        /* HOVER TỰ ĐỘNG HIỆN ẨN TOOLTIP */
+        .win-cell-tooltip, .points-cell-tooltip {
             position: relative;
             display: inline-block;
             cursor: pointer;
@@ -160,14 +161,15 @@
             height: 100%;
             padding: 5px 0;
         }
-        .win-cell-tooltip .tooltiptext {
+        .win-cell-tooltip .tooltiptext, .points-cell-tooltip .tooltiptext {
             visibility: hidden;
-            width: 140px;
+            min-width: 160px;
+            max-width: 250px;
             background-color: #1e293b;
             color: #fff;
-            text-align: center;
+            text-align: left;
             border-radius: 6px;
-            padding: 6px 0;
+            padding: 8px 10px;
             position: absolute;
             z-index: 99;
             bottom: 125%; 
@@ -177,9 +179,11 @@
             transition: opacity 0.2s;
             font-size: 12px;
             font-weight: normal;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            white-space: pre-line;
+            line-height: 1.4;
         }
-        .win-cell-tooltip .tooltiptext::after {
+        .win-cell-tooltip .tooltiptext::after, .points-cell-tooltip .tooltiptext::after {
             content: "";
             position: absolute;
             top: 100%;
@@ -189,7 +193,7 @@
             border-style: solid;
             border-color: #1e293b transparent transparent transparent;
         }
-        .win-cell-tooltip:hover .tooltiptext {
+        .win-cell-tooltip:hover .tooltiptext, .points-cell-tooltip:hover .tooltiptext {
             visibility: visible;
             opacity: 1;
         }
@@ -207,7 +211,6 @@
             gap: 10px;
         }
         
-        /* HOVER HIỆN MÀU QUÂN CỦA KỲ THỦ TRONG KHU VỰC BỐC THĂM */
         .pairing-player-zone {
             flex: 2.5;
             position: relative;
@@ -218,9 +221,7 @@
             background-color: #f8fafc;
             border: 1px dashed #cbd5e1;
         }
-        .pairing-player-zone:hover {
-            background-color: #f1f5f9;
-        }
+        .pairing-player-zone:hover { background-color: #f1f5f9; }
         .pairing-player-zone .color-hint-tooltip {
             visibility: hidden;
             width: 100px;
@@ -255,13 +256,7 @@
             opacity: 1;
         }
 
-        .pairing-vs { 
-            flex: 0.6; 
-            text-align: center; 
-            color: #7f8c8d; 
-            font-weight: bold; 
-            font-size: 0.9em;
-        }
+        .pairing-vs { flex: 0.6; text-align: center; color: #7f8c8d; font-weight: bold; font-size: 0.9em; }
         .pairing-result { flex: 2.2; min-width: 160px; }
         .pairing-result select { margin: 0; padding: 6px 20px 6px 8px; }
 
@@ -288,11 +283,7 @@
             font-size: 0.95em;
         }
         .history-round-body { padding: 5px 10px; }
-        .match-item { 
-            padding: 6px 0; 
-            border-bottom: 1px dashed #e2e8f0; 
-            font-size: 0.9em; 
-        }
+        .match-item { padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9em; }
         .match-item:last-child { border-bottom: none; }
         .hidden-section { display: none !important; }
 
@@ -330,17 +321,8 @@
         }
         .btn-delete-player:hover { background-color: #c0392b; }
         
-        .dropped-row {
-            background-color: #fce4d6 !important;
-            color: #94a3b8;
-        }
-        .dropped-text {
-            color: #ef4444;
-            font-size: 0.85em;
-            font-weight: bold;
-            display: inline-block;
-            margin-left: 5px;
-        }
+        .dropped-row { background-color: #fce4d6 !important; color: #94a3b8; }
+        .dropped-text { color: #ef4444; font-size: 0.85em; font-weight: bold; display: inline-block; margin-left: 5px; }
 
         .player-name-cell {
             position: relative;
@@ -357,9 +339,7 @@
             transform: translateY(-50%);
             z-index: 10;
         }
-        .player-name-cell:hover .hover-action-container {
-            display: inline-block;
-        }
+        .player-name-cell:hover .hover-action-container { display: inline-block; }
         .btn-action-inline {
             padding: 3px 8px !important;
             font-size: 11px !important;
@@ -468,7 +448,7 @@
         if (event.key === "Enter") { event.preventDefault(); createNewTournament(); }
     }
 
-    // --- HÀM XUẤT FILE EXCEL CHO DANH SÁCH BỐC THĂM VÒNG (ĐÃ SỬA CỘT VÀ CĂN GIỮA TOÀN BỘ) ---
+    // --- HÀM XUẤT FILE EXCEL CHO DANH SÁCH BỐC THĂM VÒNG ---
     function exportPairingsToExcel() {
         const tour = getCurrentTournament();
         if (!tour || !tour.roundActive || tour.currentPairings.length === 0) return alert("Không có dữ liệu bốc thăm hiện tại!");
@@ -487,20 +467,14 @@
 
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
         
-        // Tiến hành duyệt qua tất cả các ô trong Sheet để thiết lập căn giữa toàn bộ
         for (let cellRef in worksheet) {
-            if (cellRef[0] === '!') continue; // Bỏ qua thuộc tính cấu trúc ẩn của thư viện
+            if (cellRef[0] === '!') continue;
             if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
-            worksheet[cellRef].s.alignment = {
-                horizontal: "center",
-                vertical: "center"
-            };
+            worksheet[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
         }
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Lịch Thi Đấu");
-        
-        // Định vị trộn ô dòng tiêu đề
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
         worksheet['!cols'] = [{wch: 10}, {wch: 30}, {wch: 10}, {wch: 30}];
         
@@ -508,7 +482,7 @@
         XLSX.writeFile(workbook, `Boc_Tham_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`);
     }
 
-    // --- HÀM XUẤT FILE EXCEL BẢNG XẾP HẠNG (BỔ SUNG CĂN GIỮA TOÀN BỘ) ---
+    // --- HÀM XUẤT FILE EXCEL BẢNG XẾP HẠNG ---
     function exportTableToExcel() {
         const tour = getCurrentTournament();
         if (!tour || tour.players.length === 0) return alert("Không có dữ liệu xếp hạng để xuất!");
@@ -520,7 +494,7 @@
         let excelData = [
             [rawStatusText], 
             [],              
-            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
+            ["Hạng", "Tên Kỳ Thủ", "Điểm", "Lịch Sử Đối Đầu", "Buchholz", "Buchholz-1", "Ván Thắng", "Quân Lịch Sử", "Sonneborn"] 
         ];
 
         rows.forEach(tr => {
@@ -530,7 +504,12 @@
             let rank = cells[0].innerText;
             let rawName = cells[1].querySelector("span") ? cells[1].querySelector("span").innerText : cells[1].innerText;
             let cleanName = rawName.replace("(Đã bỏ cuộc)", "").trim();
-            let points = parseFloat(cells[2].innerText);
+            
+            let pointsTooltipEl = cells[2].querySelector(".points-cell-tooltip");
+            let points = pointsTooltipEl ? parseFloat(pointsTooltipEl.childNodes[0].textContent.trim()) : parseFloat(cells[2].innerText);
+            let rawHeadToHead = pointsTooltipEl ? pointsTooltipEl.querySelector(".tooltiptext").innerText : "";
+            let headToHeadText = rawHeadToHead.replace("LỊCH SỬ ĐỐI ĐẦU:", "").replace(/\n/g, " | ").trim();
+
             let buchholz = parseFloat(cells[3].innerText);
             let buchholzMinus1 = parseFloat(cells[4].innerText);
             
@@ -540,25 +519,21 @@
             let colorHistory = rawColors.replace("Quân lịch sử:", "").trim();
             let sonneborn = parseFloat(cells[6].innerText);
 
-            excelData.push([rank, cleanName, points, buchholz, buchholzMinus1, wins, colorHistory, sonneborn]);
+            excelData.push([rank, cleanName, points, headToHeadText, buchholz, buchholzMinus1, wins, colorHistory, sonneborn]);
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
         
-        // Thiết lập căn giữa toàn bộ dữ liệu file Bảng Xếp Hạng
         for (let cellRef in worksheet) {
             if (cellRef[0] === '!') continue;
             if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
-            worksheet[cellRef].s.alignment = {
-                horizontal: "center",
-                vertical: "center"
-            };
+            worksheet[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
         }
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Bảng Xếp Hạng");
-        worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
-        worksheet['!cols'] = [{wch: 8}, {wch: 26}, {wch: 10}, {wch: 12}, {wch: 14}, {wch: 12}, {wch: 18}, {wch: 12}];
+        worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
+        worksheet['!cols'] = [{wch: 8}, {wch: 26}, {wch: 10}, {wch: 35}, {wch: 12}, {wch: 14}, {wch: 12}, {wch: 18}, {wch: 12}];
         
         let cleanTourName = tour.name.replace(/[^a-aA-Z0-9ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠƯưăâêôơư\s]/g, '_');
         XLSX.writeFile(workbook, `Bang_Xep_Hang_Vong_${tour.currentRound}_${cleanTourName.trim().replace(/\s+/g, '_')}.xlsx`);
@@ -799,7 +774,6 @@
         });
     }
 
-    // --- THUẬT TOÁN ĐỆ QUY CHẤM ĐIỂM PHẠT MÀU QUÂN ---
     function generateSwissPairings() {
         const tour = getCurrentTournament();
         let activePlayers = tour.players.filter(p => p.id !== -1 && !p.isDropped);
@@ -1116,14 +1090,35 @@
                 `;
             }
 
+            // TOOLTIP 1: MÀU QUÂN LỊCH SỬ
             let textColors = (p.historyColors && p.historyColors.length > 0) 
                 ? p.historyColors.map(c => c === 'W' ? '⚪' : '⚫').join('') 
                 : 'Chưa đấu';
 
+            // TOOLTIP 2: LỊCH SỬ ĐỐI ĐẦU ẨN DƯỚI ĐIỂM SỐ
+            let headToHeadLines = [];
+            if (p.calcOpponents && p.calcOpponents.length > 0) {
+                p.calcOpponents.forEach(rel => {
+                    let oppObj = tour.players.find(o => o.id === rel.oppId);
+                    if (oppObj) {
+                        let resStr = rel.score === 1 ? "Thắng 1-0" : (rel.score === 0.5 ? "Hòa 0.5-0.5" : "Thua 0-1");
+                        headToHeadLines.push(`• vs ${oppObj.name}: ${resStr}`);
+                    }
+                });
+            }
+            let headToHeadTooltipText = headToHeadLines.length > 0 
+                ? "LỊCH SỬ ĐỐI ĐẦU:\n" + headToHeadLines.join("\n") 
+                : "Chưa đối đầu kỳ thủ nào";
+
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><b>${index + 1}</b></td>
                 <td class="player-name-cell"><span>${nameDisplay}</span>${hoverActionHtml}</td>
-                <td style="color:#27ae60; font-weight:bold;">${p.points}</td>
+                <td style="color:#27ae60; font-weight:bold;">
+                    <div class="points-cell-tooltip">
+                        ${p.points}
+                        <span class="tooltiptext">${headToHeadTooltipText}</span>
+                    </div>
+                </td>
                 <td>${p.buchholz}</td>
                 <td>${p.buchholzMinus1}</td> 
                 <td>
