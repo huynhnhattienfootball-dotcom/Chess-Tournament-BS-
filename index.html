@@ -332,6 +332,13 @@
             font-size: 0.9em;
             margin-bottom: 12px;
         }
+        .excel-import-box {
+            background: #f0fdf4;
+            border: 1px dashed #16a34a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -362,11 +369,19 @@
         <div class="flex-container">
             <div class="panel" id="registrationPanel">
                 <h3>1. Giai Đoạn: Đăng Ký Kỳ Thủ</h3>
-                <label style="font-weight: bold;">Nhập tên:</label>
+
+                <!-- TÍNH NĂNG MỚI: NHẬP TỪ FILE EXCEL -->
+                <div class="excel-import-box">
+                    <label style="font-weight: bold; color: #15803d; font-size: 0.95em;">📥 Nhập nhanh từ file Excel (.xlsx, .xls):</label>
+                    <input type="file" id="excelPlayerInput" accept=".xlsx, .xls, .csv" onchange="importPlayersFromExcel(event)" style="padding: 5px; background: #fff;" />
+                    <div style="font-size: 0.8em; color: #166534; margin-top: 4px;">* Lấy danh sách tên kỳ thủ ở cột A (Cột đầu tiên)</div>
+                </div>
+
+                <label style="font-weight: bold;">Nhập tên thủ công:</label>
                 <input type="text" id="playerName" placeholder="Nhập tên kỳ thủ..." onkeydown="handlePlayerEnter(event)">
                 <button onclick="addPlayer()">Thêm Kỳ Thủ</button>
                 
-                <h4 style="margin-bottom:5px; text-align:left;">Danh sách đã thêm (<span id="playerCount">0</span>):</h4>
+                <h4 style="margin-bottom:5px; text-align:left; margin-top: 15px;">Danh sách đã thêm (<span id="playerCount">0</span>):</h4>
                 <div class="player-list-container" id="registeredPlayersContainer"></div>
             </div>
 
@@ -435,6 +450,74 @@
         if (event.key === "Enter") { event.preventDefault(); createNewTournament(); }
     }
 
+    // HÀM TẢI & NẠP DANH SÁCH TỪ FILE EXCEL
+    function importPlayersFromExcel(event) {
+        const tour = getCurrentTournament();
+        if (!tour) return alert("Vui lòng khởi tạo hoặc chọn một giải đấu trước!");
+        if (tour.currentRound > 0) return alert("Giải đấu đã bắt đầu, không thể nhập thêm danh sách!");
+
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                let addedCount = 0;
+                let duplicateCount = 0;
+
+                jsonData.forEach((row, index) => {
+                    if (row && row[0] !== undefined && row[0] !== null) {
+                        let nameStr = String(row[0]).trim();
+                        if (nameStr === "") return;
+
+                        // Bỏ qua dòng tiêu đề nếu chứa các từ khóa cột phổ biến
+                        if (index === 0 && (nameStr.toLowerCase().includes("tên") || nameStr.toLowerCase().includes("name") || nameStr.toLowerCase().includes("họ"))) {
+                            return;
+                        }
+
+                        // Kiểm tra trùng lặp
+                        if (tour.players.some(p => p.name === nameStr && p.id !== -1)) {
+                            duplicateCount++;
+                            return;
+                        }
+
+                        const uniquePlayerId = Date.now() + Math.floor(Math.random() * 1000) + index;
+                        tour.players.push({
+                            id: uniquePlayerId,
+                            name: nameStr,
+                            opponents: [], 
+                            historyColors: [], 
+                            points: 0, buchholz: 0, buchholzMinus1: 0, wins: 0, sonneborn: 0,
+                            isDropped: false 
+                        });
+                        addedCount++;
+                    }
+                });
+
+                updateRegisteredList();
+                calculateStandings();
+                saveToLocalStorage();
+
+                let msg = `Thành công! Đã thêm ${addedCount} kỳ thủ từ file Excel.`;
+                if (duplicateCount > 0) msg += ` (Bỏ qua ${duplicateCount} tên bị trùng)`;
+                alert(msg);
+
+            } catch (err) {
+                alert("Lỗi khi đọc file Excel! Vui lòng chọn file đúng định dạng.");
+                console.error(err);
+            } finally {
+                event.target.value = ""; // Clear file input
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
     function exportPairingsToExcel() {
         const tour = getCurrentTournament();
         if (!tour || !tour.roundActive || tour.currentPairings.length === 0) return alert("Không có dữ liệu bốc thăm hiện tại!");
@@ -446,9 +529,6 @@
         ];
 
         tour.currentPairings.forEach((p, idx) => {
-            let p1Obj = tour.players.find(pl => pl.id === p.p1);
-            let p2Obj = tour.players.find(pl => pl.id === p.p2);
-            
             let whiteId = p.white !== undefined ? p.white : p.p1;
             let blackId = p.black !== undefined ? p.black : p.p2;
 
@@ -470,13 +550,6 @@
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
-        
-        for (let cellRef in worksheet) {
-            if (cellRef[0] === '!') continue;
-            if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
-            worksheet[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
-        }
-
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Lịch Thi Đấu");
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
@@ -526,13 +599,6 @@
         });
 
         const worksheet = XLSX.utils.aoa_to_sheet(excelData);
-        
-        for (let cellRef in worksheet) {
-            if (cellRef[0] === '!') continue;
-            if (!worksheet[cellRef].s) worksheet[cellRef].s = {};
-            worksheet[cellRef].s.alignment = { horizontal: "center", vertical: "center" };
-        }
-
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Bảng Xếp Hạng");
         worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
@@ -809,7 +875,6 @@
 
         let nextRound = tour.currentRound + 1;
 
-        // VÒNG 1: BỐC THĂM GHÉP CẶP ĐƠN GIẢN, CHƯA GÁN MÀU TỰ ĐỘNG
         if (nextRound === 1) {
             let shuffled = [...tour.players.filter(p => !p.isDropped)].sort(() => Math.random() - 0.5);
             let r1Pairings = [];
@@ -833,9 +898,6 @@
             return;
         }
 
-        // =========================================================================
-        // VÒNG 2 TRỞ ĐI: THUẬT TOÁN GREEDY (THAM ĂN) BỐC THĂM & PHÂN MÀU TỰ ĐỘNG
-        // =========================================================================
         let pool = tour.players.filter(p => !p.isDropped).sort((a, b) => {
             if (b.points !== a.points) return b.points - a.points;
             if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
@@ -845,7 +907,6 @@
         let pairings = [];
         let pairedIds = new Set();
 
-        // Hàm tính phạt điểm màu quân cho kỳ thủ
         function getColorPenalty(player, assignedColor) {
             if (player.id === -1) return 0;
             let history = player.historyColors || [];
@@ -867,7 +928,6 @@
             return penalty;
         }
 
-        // Vòng lặp Greedy chọn từng kỳ thủ từ cao xuống thấp
         for (let i = 0; i < pool.length; i++) {
             let p1 = pool[i];
             if (pairedIds.has(p1.id)) continue;
@@ -877,19 +937,14 @@
             let bestWhiteId = p1.id;
             let bestBlackId = -1;
 
-            // Duyệt các đối thủ tiềm năng phía dưới
             for (let j = i + 1; j < pool.length; j++) {
                 let p2 = pool[j];
                 if (pairedIds.has(p2.id)) continue;
 
                 let alreadyPlayed = p1.opponents.includes(p2.id);
-                
-                // Điểm phạt ưu tiên: Không gặp lại người cũ + chênh lệch điểm số
                 let basePenalty = (alreadyPlayed ? 10000 : 0) + Math.abs(p1.points - p2.points) * 100;
 
-                // Thử trường hợp p1 Trắng, p2 Đen
                 let penA = basePenalty + getColorPenalty(p1, 'W') + getColorPenalty(p2, 'B');
-                // Thử trường hợp p1 Đen, p2 Trắng
                 let penB = basePenalty + getColorPenalty(p1, 'B') + getColorPenalty(p2, 'W');
 
                 let currentMinPen = Math.min(penA, penB);
@@ -905,11 +960,8 @@
                 }
             }
 
-            // Tiến hành ghép cặp Greedy
             if (bestOpponentIndex !== -1) {
                 let p2 = pool[bestOpponentIndex];
-                
-                // Xử lý nếu ghép với quân BYE (-1)
                 if (bestWhiteId === -1) { bestWhiteId = bestBlackId; bestBlackId = -1; }
                 
                 let matchObj = { white: bestWhiteId, black: bestBlackId };
@@ -942,7 +994,6 @@
             row.className = "pairing-row";
 
             if (tour.currentRound === 1) {
-                // VÒNG 1: CHO PHÉP TỰ CHỌN MÀU QUÂN CỦA 2 KỲ THỦ
                 let p1Obj = tour.players.find(pl => pl.id === p.p1);
                 let p2Obj = tour.players.find(pl => pl.id === p.p2);
                 let p1Name = p1Obj ? p1Obj.name : "BYE (Miễn đấu)";
@@ -974,7 +1025,6 @@
                     </div>
                 `;
             } else {
-                // VÒNG 2 TRỞ ĐI: MÀU ĐÃ ĐƯỢC TỰ ĐỘNG CHỌN BỞI THUẬT TOÁN SWISS
                 let whiteObj = tour.players.find(pl => pl.id === p.white);
                 let blackObj = tour.players.find(pl => pl.id === p.black);
                 let whiteName = whiteObj ? whiteObj.name : "BYE (Miễn đấu)";
@@ -1111,7 +1161,6 @@
             p.dePoints = 0; p.deTooltip = "";
         });
 
-        // 1. TÍNH ĐIỂM CƠ BẢN VÀ THÔNG TIN ĐỐI ĐẦU TỪ LỊCH SỬ TRẬN ĐẤU
         tour.matches.forEach(m => {
             let p1 = tour.players.find(p => p.id === m.p1);
             let p2 = tour.players.find(p => p.id === m.p2);
@@ -1132,7 +1181,6 @@
             }
         });
 
-        // 2. TÍNH HỆ SỐ BUCHHOLZ & SONNEBORN
         tour.players.forEach(p => {
             let opponentScores = [];
             p.calcOpponents.forEach(rel => {
@@ -1160,7 +1208,6 @@
 
         let displayPlayers = tour.players.filter(p => p.id !== -1);
 
-        // 3. XỬ LÝ QUY TẮC ĐỐI ĐẦU TRỰC TIẾP (DIRECT ENCOUNTER - DE)
         let pointGroups = {};
         displayPlayers.forEach(p => {
             if (!pointGroups[p.points]) pointGroups[p.points] = [];
@@ -1209,7 +1256,6 @@
             }
         });
 
-        // 4. TIẾN HÀNH SẮP XẾP BẢNG XẾP HẠNG
         displayPlayers.sort((a, b) => {
             if (a.isDropped !== b.isDropped) return a.isDropped ? 1 : -1; 
             if (b.points !== a.points) return b.points - a.points;
@@ -1220,7 +1266,6 @@
             return b.sonneborn - a.sonneborn;
         });
 
-        // 5. HIỂN THỊ LÊN GIAO DIỆN TABLE
         displayPlayers.forEach((p, index) => {
             let rowClass = p.isDropped ? "dropped-row" : "";
             let nameDisplay = p.isDropped ? `<s>${p.name}</s> <span class="dropped-text">(Đã bỏ cuộc)</span>` : p.name;
