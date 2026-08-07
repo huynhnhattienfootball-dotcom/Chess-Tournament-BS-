@@ -833,13 +833,21 @@
             return;
         }
 
-        // VÒNG 2 TRỞ ĐI: THUẬT TOÁN TỰ ĐỘNG TÍNH TOÁN & CÂN BẰNG MÀU QUÂN SWISS
-        let pool = tour.players.filter(p => !p.isDropped).sort((a, b) => b.points - a.points);
-        let bestPairings = null;
-        let minPenaltyScore = Infinity;
+        // =========================================================================
+        // VÒNG 2 TRỞ ĐI: THUẬT TOÁN GREEDY (THAM ĂN) BỐC THĂM & PHÂN MÀU TỰ ĐỘNG
+        // =========================================================================
+        let pool = tour.players.filter(p => !p.isDropped).sort((a, b) => {
+            if (b.points !== a.points) return b.points - a.points;
+            if (b.buchholz !== a.buchholz) return b.buchholz - a.buchholz;
+            return b.wins - a.wins;
+        });
 
-        function calculateColorPenalty(player, assignedColor) {
-            if (player.id === -1) return 0; 
+        let pairings = [];
+        let pairedIds = new Set();
+
+        // Hàm tính phạt điểm màu quân cho kỳ thủ
+        function getColorPenalty(player, assignedColor) {
+            if (player.id === -1) return 0;
             let history = player.historyColors || [];
             let penalty = 0;
 
@@ -859,74 +867,67 @@
             return penalty;
         }
 
-        function backtrack(index, currentPairings, currentPenalty, usedIds) {
-            if (currentPenalty >= minPenaltyScore) return; 
+        // Vòng lặp Greedy chọn từng kỳ thủ từ cao xuống thấp
+        for (let i = 0; i < pool.length; i++) {
+            let p1 = pool[i];
+            if (pairedIds.has(p1.id)) continue;
 
-            if (index >= pool.length) {
-                if (currentPenalty < minPenaltyScore) {
-                    minPenaltyScore = currentPenalty;
-                    bestPairings = JSON.parse(JSON.stringify(currentPairings));
-                }
-                return;
-            }
+            let bestOpponentIndex = -1;
+            let minPairPenalty = Infinity;
+            let bestWhiteId = p1.id;
+            let bestBlackId = -1;
 
-            let p1 = pool[index];
-            if (usedIds.has(p1.id)) {
-                backtrack(index + 1, currentPairings, currentPenalty, usedIds);
-                return;
-            }
-
-            usedIds.add(p1.id);
-
-            for (let j = index + 1; j < pool.length; j++) {
+            // Duyệt các đối thủ tiềm năng phía dưới
+            for (let j = i + 1; j < pool.length; j++) {
                 let p2 = pool[j];
-                if (usedIds.has(p2.id)) continue;
+                if (pairedIds.has(p2.id)) continue;
 
-                let basePenalty = 0;
-                if (p1.opponents.includes(p2.id)) {
-                    basePenalty += 100; 
+                let alreadyPlayed = p1.opponents.includes(p2.id);
+                
+                // Điểm phạt ưu tiên: Không gặp lại người cũ + chênh lệch điểm số
+                let basePenalty = (alreadyPlayed ? 10000 : 0) + Math.abs(p1.points - p2.points) * 100;
+
+                // Thử trường hợp p1 Trắng, p2 Đen
+                let penA = basePenalty + getColorPenalty(p1, 'W') + getColorPenalty(p2, 'B');
+                // Thử trường hợp p1 Đen, p2 Trắng
+                let penB = basePenalty + getColorPenalty(p1, 'B') + getColorPenalty(p2, 'W');
+
+                let currentMinPen = Math.min(penA, penB);
+
+                if (currentMinPen < minPairPenalty) {
+                    minPairPenalty = currentMinPen;
+                    bestOpponentIndex = j;
+                    if (penA <= penB) {
+                        bestWhiteId = p1.id; bestBlackId = p2.id;
+                    } else {
+                        bestWhiteId = p2.id; bestBlackId = p1.id;
+                    }
                 }
-
-                basePenalty += Math.abs(p1.points - p2.points) * 10;
-                usedIds.add(p2.id);
-
-                let penaltyA = basePenalty;
-                penaltyA += calculateColorPenalty(p1, "W");
-                penaltyA += calculateColorPenalty(p2, "B");
-
-                currentPairings.push({ white: p1.id, black: p2.id });
-                backtrack(index + 1, currentPairings, currentPenalty + penaltyA, usedIds);
-                currentPairings.pop();
-
-                let penaltyB = basePenalty;
-                penaltyB += calculateColorPenalty(p1, "B");
-                penaltyB += calculateColorPenalty(p2, "W");
-
-                currentPairings.push({ white: p2.id, black: p1.id });
-                backtrack(index + 1, currentPairings, currentPenalty + penaltyB, usedIds);
-                currentPairings.pop();
-
-                usedIds.delete(p2.id);
             }
-            usedIds.delete(p1.id);
+
+            // Tiến hành ghép cặp Greedy
+            if (bestOpponentIndex !== -1) {
+                let p2 = pool[bestOpponentIndex];
+                
+                // Xử lý nếu ghép với quân BYE (-1)
+                if (bestWhiteId === -1) { bestWhiteId = bestBlackId; bestBlackId = -1; }
+                
+                let matchObj = { white: bestWhiteId, black: bestBlackId };
+                if (bestBlackId === -1) matchObj.result = "1-0";
+
+                pairings.push(matchObj);
+                pairedIds.add(p1.id);
+                pairedIds.add(p2.id);
+            }
         }
 
-        backtrack(0, [], 0, new Set());
-
-        if (!bestPairings || bestPairings.length === 0) {
-            return alert("Lỗi hệ thống: Không thể tính toán kết quả bốc thăm hợp lệ!");
+        if (pairings.length === 0) {
+            return alert("Lỗi hệ thống: Không thể bốc thăm được cặp đấu phù hợp!");
         }
-
-        bestPairings.forEach(p => {
-            if (p.white === -1) {
-                p.white = p.black; p.black = -1;
-            }
-            if (p.black === -1) { p.result = "1-0"; }
-        });
 
         tour.currentRound = nextRound;
         tour.roundActive = true;
-        tour.currentPairings = bestPairings;
+        tour.currentPairings = pairings;
 
         saveToLocalStorage();
         loadTournamentData();
