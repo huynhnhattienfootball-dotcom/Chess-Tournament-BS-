@@ -757,24 +757,134 @@
         });
     }
 
+   // THUẬT TOÁN BỐC THĂM SWISS THAM LAM (GREEDY MATCHING - TỐI ƯU SIÊU TỐC O(N^2))
     function generateSwissPairings() {
-        const tour = getCurrentTournament();
-        let activePlayers = tour.players.filter(p => p.id !== -1 && !p.isDropped);
-        
-        if (activePlayers.length < 2) {
-            return alert("Không đủ kỳ thủ để tiến hành bốc thăm!");
+        if (tournament.roundActive) {
+            return alert("Vòng đấu hiện tại chưa hoàn thành! Vui lòng nhập kết quả và nhấn 'Hoàn Thành & Lưu Kết Quả Vòng'.");
         }
 
-        tour.players = tour.players.filter(p => p.id !== -1);
+        // 1. Lọc và dọn dẹp danh sách kỳ thủ
+        tournament.players = tournament.players.filter(p => p.id !== -1);
+        let activePlayers = tournament.players.filter(p => !p.isDropped);
 
+        if (activePlayers.length < 2) {
+            return alert("Cần ít nhất 2 kỳ thủ để bốc thăm!");
+        }
+
+        // 2. Thêm kỳ thủ BYE nếu số lượng lẻ
         if (activePlayers.length % 2 !== 0) {
-            tour.players.push({
-                id: -1, name: "BYE (Miễn đấu)",
-                opponents: [], historyColors: [],
-                points: 0, buchholz: 0, buchholzMinus1: 0, wins: 0, sonneborn: 0,
+            tournament.players.push({
+                id: -1,
+                name: "BYE (Miễn đấu)",
+                points: -999, // Đánh dấu điểm cực thấp để luôn xếp cuối
+                opponents: [],
+                historyColors: [],
+                buchholz: 0,
+                wins: 0,
                 isDropped: false
             });
         }
+
+        calculateStandings();
+
+        let nextRound = tournament.currentRound + 1;
+        let newPairings = [];
+
+        // 3. VÒNG 1: BỐC THĂM NGẪU NHIÊN
+        if (nextRound === 1) {
+            let shuffled = [...tournament.players.filter(p => !p.isDropped)].sort(() => Math.random() - 0.5);
+            for (let i = 0; i < shuffled.length; i += 2) {
+                let p1 = shuffled[i];
+                let p2 = shuffled[i + 1];
+                let isBye = (p1.id === -1 || p2.id === -1);
+
+                newPairings.push({
+                    white: p1.id,
+                    black: p2.id,
+                    result: isBye ? (p1.id === -1 ? "0-1" : "1-0") : "1-0"
+                });
+            }
+        } 
+        // 4. VÒNG 2 TRỜI ĐI: THUẬT TOÁN GREEDY (THAM LAM)
+        else {
+            // Sắp xếp kỳ thủ theo Điểm -> Buchholz
+            let pool = [...tournament.players.filter(p => !p.isDropped)].sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                return b.buchholz - a.buchholz;
+            });
+
+            let pairedIds = new Set();
+
+            for (let i = 0; i < pool.length; i++) {
+                let p1 = pool[i];
+                if (pairedIds.has(p1.id)) continue;
+
+                let bestOpponent = null;
+
+                // Ưu tiên 1: Tìm người gần điểm nhất CHƯA TỪNG GẶP
+                for (let j = i + 1; j < pool.length; j++) {
+                    let p2 = pool[j];
+                    if (pairedIds.has(p2.id)) continue;
+
+                    if (!p1.opponents.includes(p2.id)) {
+                        bestOpponent = p2;
+                        break; // Chọn ngay lập tức (Tham lam)
+                    }
+                }
+
+                // Ưu tiên 2 (Dự phòng): Nếu ai cũng đã gặp, lấy người trống gần nhất
+                if (!bestOpponent) {
+                    for (let j = i + 1; j < pool.length; j++) {
+                        let p2 = pool[j];
+                        if (!pairedIds.has(p2.id)) {
+                            bestOpponent = p2;
+                            break;
+                        }
+                    }
+                }
+
+                // Ghép cặp và Cân bằng màu quân (Trắng / Đen)
+                if (bestOpponent) {
+                    pairedIds.add(p1.id);
+                    pairedIds.add(bestOpponent.id);
+
+                    let wCount1 = p1.historyColors.filter(c => c === 'W').length;
+                    let wCount2 = bestOpponent.historyColors.filter(c => c === 'W').length;
+
+                    let whitePlayer = p1;
+                    let blackPlayer = bestOpponent;
+
+                    if (wCount1 > wCount2) {
+                        whitePlayer = bestOpponent;
+                        blackPlayer = p1;
+                    }
+
+                    // Kỳ thủ BYE (-1) luôn xếp ô Đen
+                    if (whitePlayer.id === -1) {
+                        let tmp = whitePlayer; 
+                        whitePlayer = blackPlayer; 
+                        blackPlayer = tmp;
+                    }
+
+                    let isBye = (whitePlayer.id === -1 || blackPlayer.id === -1);
+
+                    newPairings.push({
+                        white: whitePlayer.id,
+                        black: blackPlayer.id,
+                        result: isBye ? "1-0" : "1-0"
+                    });
+                }
+            }
+        }
+
+        // 5. Cập nhật trạng thái giải đấu
+        tournament.currentRound = nextRound;
+        tournament.roundActive = true;
+        tournament.pairings = newPairings;
+
+        saveToLocalStorage();
+        updateUI();
+    }
 
         calculateStandings(); 
 
